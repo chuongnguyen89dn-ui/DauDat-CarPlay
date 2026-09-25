@@ -28,3 +28,12 @@ Required health checks: SpringBoard/CarPlay/CarPlayTemplateUIHost/mediaserverd p
 Diagnosis rule: compare the last known-good path with the failing path layer-by-layer. The first divergent layer is the primary suspect. A green build or successful injection is not proof of runtime correctness.
 
 Repair loop: snapshot -> diagnose -> identify first divergence -> apply minimal targeted fix -> snapshot again -> compare -> only then mark the symptom fixed. Preserve working layouts and behavior while repairing another device/layout.
+
+
+## DuoDash compatibility baseline
+
+Final Đầu Đất builds must preserve the original package's settings/behavior surface while replacing legacy branding and namespaces. Compatibility work covers App Bridge enable/autostart, bridged-app selection, left/right/third panes, layout and split ratio/fraction state, navigation provider/dock state, splash/tweak-management/status controls, plus Doctor diagnostics and reversible fullscreen. The original proprietary package is not committed to this public repository; it is used only as a local compatibility reference.
+
+### Release gate
+
+A final package is not releasable until: build is green; Doctor report generation works; fullscreen expands the real CarPlay content surface rather than only hiding the sidebar; legacy branding/runtime identifiers are audited; and package/signing/install scripts pass inspection.
