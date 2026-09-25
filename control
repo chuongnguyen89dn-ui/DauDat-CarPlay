@@ -1,9 +1,9 @@
 Package: com.chuong.duodashunifiedfullscreen
-Name: DuoDash Unified Fullscreen
-Version: 1.0.0
+Name: DuoDash Unified Fullscreen + DauDat54
+Version: 1.1.0
 Architecture: iphoneos-arm64
-Description: Integrated 427x240 fullscreen correction for DuoDash 1.1.3 base
+Description: Unified 427x240 correction with non-fullscreen DauDat #54 components
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
-Depends: firmware (>= 15.0)
+Depends: firmware (>= 15.0), preferenceloader
