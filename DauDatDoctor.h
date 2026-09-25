@@ -40,7 +40,6 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
     [o appendFormat:@"Config: %@\nFullscreen: %d\n",cfg,fullscreen ? 1 : 0];
     NSUserDefaults *defaults=[NSUserDefaults standardUserDefaults];
     NSDictionary *newDomain=[defaults persistentDomainForName:DDPreferencesDomain];
-      DDPreferencesDomain,(unsigned long)newDomain.count,legacyDomain.count>0 ? 1 : 0,(unsigned long)legacyDomain.count];
     [o appendFormat:@"Bridge: enabled=%@ autostart=%@ layout=%@ split=%@ ratio=%@ left=%@ right=%@ third=%@\n",
       cfg[DDAppBridgeEnabledKey],cfg[DDAppBridgeAutostartKey],cfg[DDAppBridgeLayoutKey],cfg[DDSplitEnabledKey],
       cfg[DDRatioKey],cfg[DDLeftAppKey],cfg[DDRightAppKey],cfg[DDThirdAppKey]];
