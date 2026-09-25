@@ -9,9 +9,19 @@ static BOOL DDIsCarPlayScreen(UIScreen *screen) {
     return fabs(s.width-DDTargetW)<2.0 && fabs(s.height-DDTargetH)<2.0;
 }
 
+static NSArray<UIWindow *> *DDAllWindows(void) {
+    NSMutableArray<UIWindow *> *out=[NSMutableArray array];
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        [out addObjectsFromArray:ws.windows];
+    }
+    return out;
+}
+
 static UIWindow *DDStatusBarWindow(void) {
     Class cls = NSClassFromString(@"DBStatusBarWindow");
-    for (UIWindow *w in UIApplication.sharedApplication.windows) {
+    for (UIWindow *w in DDAllWindows()) {
         if (cls && [w isKindOfClass:cls]) return w;
     }
     return nil;
@@ -41,7 +51,7 @@ static void DDSetSidebarVisible(BOOL visible) {
 @end
 
 static void DDInstallRevealHandle(void) {
-    for (UIWindow *w in UIApplication.sharedApplication.windows) {
+    for (UIWindow *w in DDAllWindows()) {
         if (!DDIsCarPlayScreen(w.screen)) continue;
         if ([w viewWithTag:0x444448]) continue;
         DDRevealHandle *h=[[DDRevealHandle alloc] initWithFrame:CGRectMake(2,96,8,48)];
