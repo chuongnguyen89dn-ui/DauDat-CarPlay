@@ -8,6 +8,7 @@ static const CGFloat DDTargetH = 240.0;
 @class DDRevealHandle;
 static BOOL gDDFullscreen = NO;
 static DDRevealHandle *gDDHandle = nil;
+static NSMapTable<UIView *, NSValue *> *gDDOriginalFrames = nil;
 
 static BOOL DDIsCarPlayScreen(UIScreen *screen) {
     if (!screen || screen == UIScreen.mainScreen) return NO;
@@ -33,6 +34,41 @@ static UIWindow *DDStatusBarWindow(void) {
     return nil;
 }
 
+static BOOL DDLooksSidebarReserved(CGRect f) {
+    return ((f.origin.x >= 40.0 && f.origin.x <= 50.0) ||
+            (f.size.width >= 370.0 && f.size.width <= 390.0));
+}
+
+static void DDApplyContentFullscreen(BOOL enabled) {
+    if (!gDDOriginalFrames) gDDOriginalFrames=[NSMapTable weakToStrongObjectsMapTable];
+    for (UIWindow *w in DDAllWindows()) {
+        if (!DDIsCarPlayScreen(w.screen) || w.hidden || !w.rootViewController) continue;
+        if ([w isKindOfClass:NSClassFromString(@"DBStatusBarWindow")]) continue;
+        UIView *root=w.rootViewController.view;
+        NSMutableArray<UIView *> *targets=[NSMutableArray arrayWithObject:root];
+        [targets addObjectsFromArray:root.subviews];
+        for (UIView *v in targets) {
+            if (enabled) {
+                CGRect f=v.frame;
+                if (!DDLooksSidebarReserved(f)) continue;
+                if (![gDDOriginalFrames objectForKey:v]) [gDDOriginalFrames setObject:[NSValue valueWithCGRect:f] forKey:v];
+                CGRect full=f;
+                full.origin.x=0.0;
+                full.size.width=DDTargetW;
+                v.frame=full;
+                [v setNeedsLayout];
+            } else {
+                NSValue *saved=[gDDOriginalFrames objectForKey:v];
+                if (saved) {
+                    v.frame=saved.CGRectValue;
+                    [v setNeedsLayout];
+                    [gDDOriginalFrames removeObjectForKey:v];
+                }
+            }
+        }
+    }
+}
+
 static void DDSetSidebarVisible(BOOL visible) {
     UIWindow *bar = DDStatusBarWindow();
     if (!bar) return;
@@ -53,7 +89,7 @@ static void DDSetSidebarVisible(BOOL visible) {
     }
     return self;
 }
-- (void)showBar { gDDFullscreen=NO; DDSetSidebarVisible(YES); self.hidden=YES; }
+- (void)showBar { gDDFullscreen=NO; DDApplyContentFullscreen(NO); DDSetSidebarVisible(YES); self.hidden=YES; }
 @end
 
 static void DDInstallRevealHandle(void) {
@@ -110,6 +146,7 @@ static void DDInstallRevealHandle(void) {
     if (g.state!=UIGestureRecognizerStateBegan) return;
     gDDFullscreen=YES;
     DDSetSidebarVisible(NO);
+    DDApplyContentFullscreen(YES);
     if (gDDHandle) gDDHandle.hidden=NO;
 }
 %end
