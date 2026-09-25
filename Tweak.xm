@@ -51,7 +51,7 @@ static BOOL DDReserved(CGRect f) {
 
 %hook DBStatusBarWindow
 - (void)setFrame:(CGRect)frame {
-    if (DDCP(self.screen)) {
+    if (DDCP(((UIWindow *)self).screen)) {
         CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDSide;
         frame.origin.x = -fabs(width);
     }
