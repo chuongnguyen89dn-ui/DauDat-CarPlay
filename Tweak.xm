@@ -124,6 +124,7 @@ static void DDInstallRevealHandle(void) {
         %init(DauDatCarPlay);
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC*2), dispatch_get_main_queue(), ^{
             DDInstallRevealHandle();
+        DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow());
         });
     }
 }
