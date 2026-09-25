@@ -14,7 +14,6 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 BUNDLE_NAME = DauDatPrefs
 DauDatPrefs_FILES = DauDatPrefsRootListController.m
 DauDatPrefs_FRAMEWORKS = UIKit
-DauDatPrefs_PRIVATE_FRAMEWORKS = Preferences
 DauDatPrefs_INSTALL_PATH = /Library/PreferenceBundles
 DauDatPrefs_CFLAGS = -fobjc-arc
 
