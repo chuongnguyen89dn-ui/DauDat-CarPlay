@@ -1,7 +1,6 @@
 #import <Foundation/Foundation.h>
 
 static NSString * const DDPreferencesDomain = @"com.chuong.daudat.settings";
-static NSString * const DDLegacyPreferencesDomain = @"com.sensetechlab.duodash.settings";
 
 // Preserve the original DuoDash preference semantics under the new Đầu Đất namespace.
 // This lets the compatibility layer keep every layout/state dimension instead of collapsing
@@ -61,7 +60,6 @@ static void DDMigrateLegacyConfigurationIfNeeded(void) {
 }
 
 static NSDictionary *DDLoadConfiguration(void) {
-    DDMigrateLegacyConfigurationIfNeeded();
     NSMutableDictionary *v=[DDDefaultConfiguration() mutableCopy];
     NSDictionary *saved=[[NSUserDefaults standardUserDefaults] persistentDomainForName:DDPreferencesDomain];
     if (saved) [v addEntriesFromDictionary:saved];
