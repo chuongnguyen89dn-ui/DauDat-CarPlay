@@ -89,7 +89,7 @@ static void DDSetSidebarVisible(BOOL visible) {
     }
     return self;
 }
-- (void)showBar { gDDFullscreen=NO; DDApplyContentFullscreen(NO); DDSetSidebarVisible(YES); self.hidden=YES; }
+- (void)showBar { gDDFullscreen=NO; DDApplyContentFullscreen(NO); DDSetSidebarVisible(YES); DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow()); self.hidden=YES; }
 @end
 
 static void DDInstallRevealHandle(void) {
@@ -147,6 +147,7 @@ static void DDInstallRevealHandle(void) {
     gDDFullscreen=YES;
     DDSetSidebarVisible(NO);
     DDApplyContentFullscreen(YES);
+    DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow());
     if (gDDHandle) gDDHandle.hidden=NO;
 }
 %end
