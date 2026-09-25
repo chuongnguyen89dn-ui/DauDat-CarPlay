@@ -1,9 +1,9 @@
-Package: com.chuong.daudat
-Name: Đầu Đất
-Version: 0.2.0
+Package: com.chuong.duodashsidebarcontrol
+Name: DuoDash Sidebar Control
+Version: 1.0.0
 Architecture: iphoneos-arm64
-Description: Independent CarPlay foundation with reversible fullscreen control
+Description: Sidebar hide/reveal add-on for the verified DuoDash Geometry Fix
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
-Depends: firmware (>= 15.0), preferenceloader
+Depends: firmware (>= 15.0)
