@@ -86,7 +86,7 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
     [o appendString:@"\n=== RUNTIME HEALTH ===\n"];
     [o appendFormat:@"StatusBarWindow: %@\n",bar?@"OK":@"MISSING"];
     [o appendFormat:@"CarPlayScreen: %@\n",screens.count>1?@"PRESENT":@"NOT_DETECTED"];
-    [o appendFormat:@"ProcessUptime: %.1fs\n",NSProcessInfo.processInfo.systemUptime];
+    [o appendFormat:@"SystemUptime: %.1fs\n",NSProcessInfo.processInfo.systemUptime];
     [o appendFormat:@"PhysicalMemory: %llu\n",NSProcessInfo.processInfo.physicalMemory];
     [o appendFormat:@"LowPowerMode: %d\n",NSProcessInfo.processInfo.lowPowerModeEnabled ? 1 : 0];
     [o appendFormat:@"DoctorDirWritable: %d\n",[[NSFileManager defaultManager] isWritableFileAtPath:DDDoctorDir()] ? 1 : 0];
