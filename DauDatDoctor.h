@@ -9,6 +9,16 @@ static NSString *DDDoctorDir(void) {
 static NSString *DDDoctorReportPath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Diagnostic.txt"]; }
 static NSString *DDDoctorBaselinePath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Baseline.txt"]; }
 static NSString *DDDoctorEventPath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Runtime.log"]; }
+static NSString *DDDoctorExportPath(void) { return @"/var/mobile/Documents/DauDat-Diagnostic.txt"; }
+
+static BOOL DDDoctorPublishReport(NSString *sourcePath) {
+    if (!sourcePath.length) return NO;
+    NSData *data=[NSData dataWithContentsOfFile:sourcePath];
+    if (!data.length) return NO;
+    NSString *dir=[DDDoctorExportPath() stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+    return [data writeToFile:DDDoctorExportPath() atomically:YES];
+}
 
 static void DDDoctorLogEvent(NSString *event, NSString *detail) {
     NSString *line=[NSString stringWithFormat:@"%@ | %@ | %@ | %@\n",NSDate.date,NSProcessInfo.processInfo.processName,event?:@"EVENT",detail?:@""];
@@ -121,5 +131,6 @@ static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusB
         else [snap appendString:@"\n=== BASELINE ===\nMISSING\n"];
     }
     [snap writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    if (!baseline) DDDoctorPublishReport(path);
     return path;
 }
