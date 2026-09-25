@@ -11,13 +11,3 @@ DauDat_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-BUNDLE_NAME = DauDatPrefs
-DauDatPrefs_FILES = DauDatPrefsRootListController.m
-DauDatPrefs_FRAMEWORKS = UIKit
-DauDatPrefs_INSTALL_PATH = /Library/PreferenceBundles
-DauDatPrefs_CFLAGS = -fobjc-arc
-
-include $(THEOS_MAKE_PATH)/bundle.mk
-
-after-install::
-	install.exec "killall -9 Preferences || true"
