@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
+#import "DauDatConfig.h"
 
 static const CGFloat DDTargetW = 427.0;
 static const CGFloat DDTargetH = 240.0;
@@ -115,6 +116,8 @@ static void DDInstallRevealHandle(void) {
 %end
 
 %ctor {
+    NSDictionary *cfg=DDLoadConfiguration();
+    (void)cfg;
     NSString *p=NSProcessInfo.processInfo.processName;
     if ([p containsString:@"CarPlay"]) {
         %init(DauDatCarPlay);
