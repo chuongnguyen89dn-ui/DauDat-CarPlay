@@ -1,10 +1,10 @@
 #import <Foundation/Foundation.h>
 
 static NSString * const DDPreferencesDomain = @"com.chuong.daudat.settings";
-static NSString * const DDLeftAppKey = @"split_left";
-static NSString * const DDRightAppKey = @"split_right";
-static NSString * const DDRatioKey = @"split_ratio";
-static NSString * const DDSplitEnabledKey = @"split_enabled";
+static NSString * const DDLeftAppKey = @"daudat_split_left";
+static NSString * const DDRightAppKey = @"daudat_split_right";
+static NSString * const DDRatioKey = @"daudat_split_ratio";
+static NSString * const DDSplitEnabledKey = @"daudat_split_enabled";
 
 static NSDictionary *DDDefaultConfiguration(void) {
     return @{
