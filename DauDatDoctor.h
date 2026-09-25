@@ -33,7 +33,7 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
              NSStringFromUIEdgeInsets(w.safeAreaInsets),w.hidden,w.windowLevel,root];
         }];
     }
-    UIWindow *bar=DDStatusBarWindow();
+    UIWindow *bar=statusBar;
     [o appendFormat:@"Sidebar: %@\n",bar?NSStringFromCGRect(bar.frame):@"NOT_FOUND"];
     return o;
 }
@@ -42,8 +42,8 @@ static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusB
     NSString *path=baseline?DDDoctorBaselinePath():DDDoctorReportPath();
     if (!baseline) {
         NSString *b=[NSString stringWithContentsOfFile:DDDoctorBaselinePath() encoding:NSUTF8StringEncoding error:nil];
-        if (b.length) [snap=[snap mutableCopy] appendFormat:@"\n=== BASELINE PRESENT ===\nBaseline bytes: %lu\n",(unsigned long)[b lengthOfBytesUsingEncoding:NSUTF8StringEncoding]];
-        else [snap=[snap mutableCopy] appendString:@"\n=== BASELINE ===\nMISSING\n"];
+        if (b.length) [snap appendFormat:@"\n=== BASELINE PRESENT ===\nBaseline bytes: %lu\n",(unsigned long)[b lengthOfBytesUsingEncoding:NSUTF8StringEncoding]];
+        else [snap appendString:@"\n=== BASELINE ===\nMISSING\n"];
     }
     [snap writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
     return path;
