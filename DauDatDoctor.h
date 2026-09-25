@@ -9,12 +9,12 @@ static NSString *DDDoctorDir(void) {
 static NSString *DDDoctorReportPath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Diagnostic.txt"]; }
 static NSString *DDDoctorBaselinePath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Baseline.txt"]; }
 
-static NSString *DDDoctorSnapshot(void) {
+static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
     NSMutableString *o=[NSMutableString string];
     [o appendFormat:@"=== DAUDAT DOCTOR ===\nDate: %@\nProcess: %@ pid=%d\nDevice: %@ %@\n",
       NSDate.date, NSProcessInfo.processInfo.processName, getpid(), UIDevice.currentDevice.model, UIDevice.currentDevice.systemVersion];
     NSDictionary *cfg=DDLoadConfiguration();
-    [o appendFormat:@"Config: %@\nFullscreen: %d\n",cfg,gDDFullscreen];
+    [o appendFormat:@"Config: %@\nFullscreen: %d\n",cfg,fullscreen ? 1 : 0];
     NSArray *screens=UIScreen.screens;
     [o appendFormat:@"Screens: %lu\n",(unsigned long)screens.count];
     [screens enumerateObjectsUsingBlock:^(UIScreen *s, NSUInteger i, BOOL *stop){
@@ -37,8 +37,8 @@ static NSString *DDDoctorSnapshot(void) {
     [o appendFormat:@"Sidebar: %@\n",bar?NSStringFromCGRect(bar.frame):@"NOT_FOUND"];
     return o;
 }
-static NSString *DDDoctorWrite(BOOL baseline) {
-    NSString *snap=DDDoctorSnapshot();
+static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusBar) {
+    NSMutableString *snap=[DDDoctorSnapshot(fullscreen,statusBar) mutableCopy];
     NSString *path=baseline?DDDoctorBaselinePath():DDDoctorReportPath();
     if (!baseline) {
         NSString *b=[NSString stringWithContentsOfFile:DDDoctorBaselinePath() encoding:NSUTF8StringEncoding error:nil];
