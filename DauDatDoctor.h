@@ -15,6 +15,18 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
       NSDate.date, NSProcessInfo.processInfo.processName, getpid(), UIDevice.currentDevice.model, UIDevice.currentDevice.systemVersion];
     NSDictionary *cfg=DDLoadConfiguration();
     [o appendFormat:@"Config: %@\nFullscreen: %d\n",cfg,fullscreen ? 1 : 0];
+    NSUserDefaults *defaults=[NSUserDefaults standardUserDefaults];
+    NSDictionary *newDomain=[defaults persistentDomainForName:DDPreferencesDomain];
+    NSDictionary *legacyDomain=[defaults persistentDomainForName:DDLegacyPreferencesDomain];
+    [o appendFormat:@"PrefsDomain: %@ keys=%lu\nLegacyDomainPresent: %d legacyKeys=%lu\n",
+      DDPreferencesDomain,(unsigned long)newDomain.count,legacyDomain.count>0 ? 1 : 0,(unsigned long)legacyDomain.count];
+    [o appendFormat:@"Bridge: enabled=%@ autostart=%@ layout=%@ split=%@ ratio=%@ left=%@ right=%@ third=%@\n",
+      cfg[DDAppBridgeEnabledKey],cfg[DDAppBridgeAutostartKey],cfg[DDAppBridgeLayoutKey],cfg[DDSplitEnabledKey],
+      cfg[DDRatioKey],cfg[DDLeftAppKey],cfg[DDRightAppKey],cfg[DDThirdAppKey]];
+    [o appendFormat:@"Fractional: a=%@ b=%@ layout=%@ bridgedApps=%@\n",
+      cfg[DDSplitFracAKey],cfg[DDSplitFracBKey],cfg[DDSplitFracLayoutKey],cfg[DDBridgedAppsKey]];
+    [o appendFormat:@"Navigation: dock=%@ autostart=%@ selected=%@\n",
+      cfg[DDNavBubbleDockModeKey],cfg[DDNavProviderAutostartKey],cfg[DDNavProviderSelectedKey]];
     NSArray *screens=UIScreen.screens;
     [o appendFormat:@"Screens: %lu\n",(unsigned long)screens.count];
     [screens enumerateObjectsUsingBlock:^(UIScreen *s, NSUInteger i, BOOL *stop){
