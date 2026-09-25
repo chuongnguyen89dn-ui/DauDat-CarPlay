@@ -11,6 +11,6 @@ static BOOL DDR(CGRect f){return fabs(f.origin.x-DDSide)<3||(f.size.width>370&&f
 -(void)didMoveToWindow{%orig;UIWindow*w=self.window;if(!w||!DDCP(w.screen))return;if([NSStringFromClass(self.class) isEqualToString:@"DBStatusBarView"])return;CGRect f=self.frame;if(DDR(f)){f.origin.x=0;f.size.width=DDW;f.size.height=DDH;self.frame=f;self.autoresizingMask|=UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;}}
 %end
 %hook DBStatusBarWindow
--(void)setFrame:(CGRect)f{if(DDCP(self.screen))f.origin.x=-fabs(f.size.width>1?f.size.width:DDSide);%orig(f);}
+-(void)setFrame:(CGRect)f{if(DDCP(self.screen))f.origin.x=-fabs(f.size.width>1?f.size.width:DDSide);%orig;}
 %end
 %ctor{%init;}
