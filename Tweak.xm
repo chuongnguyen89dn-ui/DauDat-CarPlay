@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import "DauDatConfig.h"
+#import "DauDatDoctor.h"
 
 static const CGFloat DDTargetW = 427.0;
 static const CGFloat DDTargetH = 240.0;
