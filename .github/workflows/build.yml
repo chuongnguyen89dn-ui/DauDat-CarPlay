@@ -17,7 +17,6 @@ jobs:
       - name: Install ldid and iOS private frameworks
         run: |
           brew install ldid
-          git clone --depth=1 https://github.com/theos/sdks.git $HOME/theos/sdks
           git clone --depth=1 https://github.com/theos/headers.git /tmp/theos-headers || true
       - name: Build rootless package
         run: |
