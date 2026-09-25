@@ -41,11 +41,6 @@ static NSDictionary *DDDefaultConfiguration(void) {
     };
 }
 
-static void DDMigrateLegacyConfigurationIfNeeded(void) {
-    NSUserDefaults *defaults=[NSUserDefaults standardUserDefaults];
-    NSDictionary *current=[defaults persistentDomainForName:DDPreferencesDomain];
-    if (current.count) return;
-}
 
 static NSDictionary *DDLoadConfiguration(void) {
     NSMutableDictionary *v=[DDDefaultConfiguration() mutableCopy];
