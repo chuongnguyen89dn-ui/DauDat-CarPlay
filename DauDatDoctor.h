@@ -62,8 +62,36 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
     [o appendFormat:@"Sidebar: %@\n",bar?NSStringFromCGRect(bar.frame):@"NOT_FOUND"];
     return o;
 }
+static NSString *DDDoctorGeometryAssessment(void) {
+    NSMutableArray<NSString *> *issues=[NSMutableArray array];
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        CGSize ss=ws.screen.bounds.size;
+        if (fabs(ss.width-427.0)>2.0 || fabs(ss.height-240.0)>2.0) continue;
+        for (UIWindow *w in ws.windows) {
+            if (w.hidden || !w.rootViewController) continue;
+            UIView *rv=w.rootViewController.view;
+            CGRect f=rv.frame;
+            if (f.origin.x>=40.0 && f.origin.x<=50.0)
+                [issues addObject:[NSString stringWithFormat:@"ROOT_X_RESERVED_45 class=%@ frame=%@",NSStringFromClass(rv.class),NSStringFromCGRect(f)]];
+            if (f.size.width>=370.0 && f.size.width<=390.0)
+                [issues addObject:[NSString stringWithFormat:@"ROOT_WIDTH_MINUS_SIDEBAR class=%@ frame=%@",NSStringFromClass(rv.class),NSStringFromCGRect(f)]];
+            for (UIView *v in rv.subviews) {
+                CGRect vf=v.frame;
+                if (vf.origin.x>=40.0 && vf.origin.x<=50.0)
+                    [issues addObject:[NSString stringWithFormat:@"CHILD_X_RESERVED_45 class=%@ frame=%@",NSStringFromClass(v.class),NSStringFromCGRect(vf)]];
+                if (vf.size.width>=370.0 && vf.size.width<=390.0)
+                    [issues addObject:[NSString stringWithFormat:@"CHILD_WIDTH_MINUS_SIDEBAR class=%@ frame=%@",NSStringFromClass(v.class),NSStringFromCGRect(vf)]];
+            }
+        }
+    }
+    return issues.count ? [issues componentsJoinedByString:@"\n"] : @"NO_OBVIOUS_45PT_RESERVATION";
+}
+
 static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusBar) {
     NSMutableString *snap=[DDDoctorSnapshot(fullscreen,statusBar) mutableCopy];
+    [snap appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n",DDDoctorGeometryAssessment()];
     NSString *path=baseline?DDDoctorBaselinePath():DDDoctorReportPath();
     if (!baseline) {
         NSString *b=[NSString stringWithContentsOfFile:DDDoctorBaselinePath() encoding:NSUTF8StringEncoding error:nil];
