@@ -137,10 +137,13 @@ static void DDInstallRevealHandle(void) {
     if (!view.window || [view viewWithTag:0x44444C]) return;
     UILongPressGestureRecognizer *lp=[[UILongPressGestureRecognizer alloc] initWithTarget:view action:@selector(dd_toggleFull:)];
     lp.minimumPressDuration=0.65;
+    lp.delegate=(id<UIGestureRecognizerDelegate>)view;
     lp.cancelsTouchesInView=NO;
     [view addGestureRecognizer:lp];
     UIView *marker=[[UIView alloc] initWithFrame:CGRectZero]; marker.tag=0x44444C; marker.hidden=YES; [view addSubview:marker];
 }
+%new
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer { return YES; }
 %new
 - (void)dd_toggleFull:(UILongPressGestureRecognizer *)g {
     if (g.state!=UIGestureRecognizerStateBegan) return;
