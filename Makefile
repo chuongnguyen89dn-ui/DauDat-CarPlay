@@ -4,19 +4,9 @@ THEOS_PACKAGE_SCHEME = rootless
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = DauDat
-DauDat_FILES = Tweak.xm
-DauDat_FRAMEWORKS = UIKit Foundation CoreFoundation
-DauDat_CFLAGS = -fobjc-arc
-
-BUNDLE_NAME = DauDatPrefs
-DauDatPrefs_FILES = DauDatPrefsRootListController.m
-DauDatPrefs_INSTALL_PATH = /Library/PreferenceBundles
-DauDatPrefs_FRAMEWORKS = UIKit
-DauDatPrefs_LDFLAGS = -undefined dynamic_lookup
-DauDatPrefs_CFLAGS = -fobjc-arc
-DauDatPrefs_RESOURCE_DIRS = layout/Library/PreferenceBundles/DauDatPrefs.bundle
-DauDatPrefs_INFOPLIST_FILE = DauDatPrefs-Info.plist
+TWEAK_NAME = DuoDashSidebarControl
+DuoDashSidebarControl_FILES = Tweak.xm
+DuoDashSidebarControl_FRAMEWORKS = UIKit Foundation
+DuoDashSidebarControl_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-include $(THEOS_MAKE_PATH)/bundle.mk
