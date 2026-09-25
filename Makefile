@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = DauDat
 DauDat_FILES = Tweak.xm
-DauDat_FRAMEWORKS = UIKit Foundation
+DauDat_FRAMEWORKS = UIKit Foundation CoreFoundation
 DauDat_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
