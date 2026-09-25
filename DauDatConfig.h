@@ -45,18 +45,6 @@ static void DDMigrateLegacyConfigurationIfNeeded(void) {
     NSUserDefaults *defaults=[NSUserDefaults standardUserDefaults];
     NSDictionary *current=[defaults persistentDomainForName:DDPreferencesDomain];
     if (current.count) return;
-
-    NSDictionary *legacy=[defaults persistentDomainForName:DDLegacyPreferencesDomain];
-    if (!legacy.count) return;
-
-    // One-way copy: preserve the user's existing DuoDash choices while all new writes
-    // live only in the independent Đầu Đất preference domain.
-    NSMutableDictionary *m=[NSMutableDictionary dictionary];
-    for (NSString *key in DDDefaultConfiguration()) {
-        id value=legacy[key];
-        if (value) m[key]=value;
-    }
-    if (m.count) [defaults setPersistentDomain:m forName:DDPreferencesDomain];
 }
 
 static NSDictionary *DDLoadConfiguration(void) {
