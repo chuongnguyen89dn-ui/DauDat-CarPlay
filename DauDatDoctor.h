@@ -40,9 +40,22 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
          NSStringFromCGRect(ws.screen.bounds),(unsigned long)ws.windows.count];
         [ws.windows enumerateObjectsUsingBlock:^(UIWindow *w, NSUInteger i, BOOL *stop){
             NSString *root=w.rootViewController?NSStringFromClass(w.rootViewController.class):@"(null)";
+            UIView *rv=w.rootViewController.view;
+            CGRect rootFrame=rv ? rv.frame : CGRectZero;
+            CGRect rootBounds=rv ? rv.bounds : CGRectZero;
             [o appendFormat:@" WIN[%lu] class=%@ frame=%@ bounds=%@ safe=%@ hidden=%d level=%.1f root=%@\n",
              (unsigned long)i,NSStringFromClass(w.class),NSStringFromCGRect(w.frame),NSStringFromCGRect(w.bounds),
              NSStringFromUIEdgeInsets(w.safeAreaInsets),w.hidden,w.windowLevel,root];
+            [o appendFormat:@"  ROOT frame=%@ bounds=%@ safe=%@ subviews=%lu\n",
+             NSStringFromCGRect(rootFrame),NSStringFromCGRect(rootBounds),
+             rv?NSStringFromUIEdgeInsets(rv.safeAreaInsets):@"(null)",(unsigned long)rv.subviews.count];
+            if (rv) {
+                [rv.subviews enumerateObjectsUsingBlock:^(UIView *v, NSUInteger vi, BOOL *vstop){
+                    [o appendFormat:@"   VIEW[%lu] class=%@ frame=%@ bounds=%@ safe=%@ hidden=%d\n",
+                     (unsigned long)vi,NSStringFromClass(v.class),NSStringFromCGRect(v.frame),NSStringFromCGRect(v.bounds),
+                     NSStringFromUIEdgeInsets(v.safeAreaInsets),v.hidden];
+                }];
+            }
         }];
     }
     UIWindow *bar=statusBar;
