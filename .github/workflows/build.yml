@@ -18,6 +18,10 @@ jobs:
         run: |
           brew install ldid
           git clone --depth=1 https://github.com/theos/headers.git /tmp/theos-headers || true
+          mkdir -p "$HOME/theos/lib"
+          curl -fL https://github.com/theos/lib/releases/latest/download/lib.tar.gz -o /tmp/theos-lib.tar.gz || true
+          if [ -s /tmp/theos-lib.tar.gz ]; then tar -xzf /tmp/theos-lib.tar.gz -C "$HOME/theos/lib" || true; fi
+          find "$HOME/theos" -iname 'Preferences.framework' -o -iname 'libPreferences*' | head -20
       - name: Build rootless package
         run: |
           export THEOS=$HOME/theos
