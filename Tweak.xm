@@ -89,7 +89,7 @@ static void DDSetSidebarVisible(BOOL visible) {
     }
     return self;
 }
-- (void)showBar { gDDFullscreen=NO; DDApplyContentFullscreen(NO); DDSetSidebarVisible(YES); DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow()); self.hidden=YES; }
+- (void)showBar { DDDoctorLogEvent(@"FULLSCREEN_EXIT", @"edge handle"); gDDFullscreen=NO; DDApplyContentFullscreen(NO); DDSetSidebarVisible(YES); DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow()); self.hidden=YES; }
 @end
 
 static void DDInstallRevealHandle(void) {
@@ -144,6 +144,7 @@ static void DDInstallRevealHandle(void) {
 %new
 - (void)dd_toggleFull:(UILongPressGestureRecognizer *)g {
     if (g.state!=UIGestureRecognizerStateBegan) return;
+    DDDoctorLogEvent(@"FULLSCREEN_ENTER", @"sidebar long press");
     gDDFullscreen=YES;
     DDSetSidebarVisible(NO);
     DDApplyContentFullscreen(YES);
@@ -160,6 +161,7 @@ static void DDInstallRevealHandle(void) {
     NSString *p=NSProcessInfo.processInfo.processName;
     if ([p containsString:@"CarPlay"]) {
         %init(DauDatCarPlay);
+        DDDoctorLogEvent(@"INJECT", @"CarPlay group initialized");
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC*2), dispatch_get_main_queue(), ^{
             DDInstallRevealHandle();
         DDDoctorWrite(NO, gDDFullscreen, DDStatusBarWindow());
