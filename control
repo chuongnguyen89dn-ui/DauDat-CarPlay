@@ -1,8 +1,8 @@
 Package: com.chuong.daudat
 Name: Đầu Đất
-Version: 0.1.0
+Version: 0.2.0
 Architecture: iphoneos-arm64
-Description: Independent rootless CarPlay split-screen foundation
+Description: Independent CarPlay foundation with reversible fullscreen control
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
