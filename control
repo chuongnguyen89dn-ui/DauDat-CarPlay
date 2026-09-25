@@ -6,4 +6,4 @@ Description: Independent CarPlay foundation with reversible fullscreen control
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
-Depends: firmware (>= 15.0)
+Depends: firmware (>= 15.0), preferenceloader
