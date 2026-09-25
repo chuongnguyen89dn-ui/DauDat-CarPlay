@@ -38,7 +38,6 @@ static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
       NSDate.date, NSProcessInfo.processInfo.processName, getpid(), UIDevice.currentDevice.model, UIDevice.currentDevice.systemVersion];
     NSDictionary *cfg=DDLoadConfiguration();
     [o appendFormat:@"Config: %@\nFullscreen: %d\n",cfg,fullscreen ? 1 : 0];
-    NSUserDefaults *defaults=[NSUserDefaults standardUserDefaults];
     [o appendFormat:@"Bridge: enabled=%@ autostart=%@ layout=%@ split=%@ ratio=%@ left=%@ right=%@ third=%@\n",
       cfg[DDAppBridgeEnabledKey],cfg[DDAppBridgeAutostartKey],cfg[DDAppBridgeLayoutKey],cfg[DDSplitEnabledKey],
       cfg[DDRatioKey],cfg[DDLeftAppKey],cfg[DDRightAppKey],cfg[DDThirdAppKey]];
