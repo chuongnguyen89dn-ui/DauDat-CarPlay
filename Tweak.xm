@@ -161,6 +161,7 @@ static void DDInstallRevealHandle(void) {
     NSString *p=NSProcessInfo.processInfo.processName;
     if ([p containsString:@"CarPlay"]) {
         %init(DauDatCarPlay);
+        DDDoctorInstallDarwinObservers();
         DDDoctorLogEvent(@"INJECT", @"CarPlay group initialized");
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC*2), dispatch_get_main_queue(), ^{
             DDInstallRevealHandle();
