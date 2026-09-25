@@ -8,6 +8,19 @@ static NSString *DDDoctorDir(void) {
 }
 static NSString *DDDoctorReportPath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Diagnostic.txt"]; }
 static NSString *DDDoctorBaselinePath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Baseline.txt"]; }
+static NSString *DDDoctorEventPath(void) { return [DDDoctorDir() stringByAppendingPathComponent:@"DauDat-Runtime.log"]; }
+
+static void DDDoctorLogEvent(NSString *event, NSString *detail) {
+    NSString *line=[NSString stringWithFormat:@"%@ | %@ | %@ | %@\n",NSDate.date,NSProcessInfo.processInfo.processName,event?:@"EVENT",detail?:@""];
+    NSFileHandle *h=[NSFileHandle fileHandleForWritingAtPath:DDDoctorEventPath()];
+    if (!h) {
+        [line writeToFile:DDDoctorEventPath() atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        return;
+    }
+    [h seekToEndOfFile];
+    [h writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
+    [h closeFile];
+}
 
 static NSString *DDDoctorSnapshot(BOOL fullscreen, UIWindow *statusBar) {
     NSMutableString *o=[NSMutableString string];
@@ -99,6 +112,8 @@ static NSString *DDDoctorGeometryAssessment(void) {
 static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusBar) {
     NSMutableString *snap=[DDDoctorSnapshot(fullscreen,statusBar) mutableCopy];
     [snap appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n",DDDoctorGeometryAssessment()];
+    NSString *events=[NSString stringWithContentsOfFile:DDDoctorEventPath() encoding:NSUTF8StringEncoding error:nil];
+    [snap appendFormat:@"\n=== RUNTIME EVENTS ===\n%@\n",events.length?events:@"NO_EVENTS"];
     NSString *path=baseline?DDDoctorBaselinePath():DDDoctorReportPath();
     if (!baseline) {
         NSString *b=[NSString stringWithContentsOfFile:DDDoctorBaselinePath() encoding:NSUTF8StringEncoding error:nil];
