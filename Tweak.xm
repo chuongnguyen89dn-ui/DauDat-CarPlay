@@ -3,6 +3,7 @@
 
 static const CGFloat DDTargetW = 427.0;
 static const CGFloat DDTargetH = 240.0;
+@class DDRevealHandle;
 static BOOL gDDFullscreen = NO;
 static DDRevealHandle *gDDHandle = nil;
 
@@ -39,7 +40,6 @@ static void DDSetSidebarVisible(BOOL visible) {
     bar.frame=f;
 }
 
-@class DDRevealHandle;
 @interface DDRevealHandle : UIControl
 @end
 @implementation DDRevealHandle
@@ -94,13 +94,14 @@ static void DDInstallRevealHandle(void) {
 // The native six-dot Home control is not intercepted; a separate edge handle exits full screen.
 %hook DBStatusBarView
 - (void)didMoveToWindow {
+    UIView *view=(UIView *)self;
     %orig;
-    if (!self.window || [self viewWithTag:0x44444C]) return;
-    UILongPressGestureRecognizer *lp=[[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(dd_toggleFull:)];
+    if (!view.window || [view viewWithTag:0x44444C]) return;
+    UILongPressGestureRecognizer *lp=[[UILongPressGestureRecognizer alloc] initWithTarget:view action:@selector(dd_toggleFull:)];
     lp.minimumPressDuration=0.65;
     lp.cancelsTouchesInView=NO;
-    [self addGestureRecognizer:lp];
-    UIView *marker=[[UIView alloc] initWithFrame:CGRectZero]; marker.tag=0x44444C; marker.hidden=YES; [self addSubview:marker];
+    [view addGestureRecognizer:lp];
+    UIView *marker=[[UIView alloc] initWithFrame:CGRectZero]; marker.tag=0x44444C; marker.hidden=YES; [view addSubview:marker];
 }
 %new
 - (void)dd_toggleFull:(UILongPressGestureRecognizer *)g {
