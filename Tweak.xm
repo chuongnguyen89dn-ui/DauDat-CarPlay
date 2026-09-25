@@ -3,6 +3,9 @@
 
 static const CGFloat DDTargetW = 427.0;
 static const CGFloat DDTargetH = 240.0;
+static BOOL gDDFullscreen = NO;
+static DDRevealHandle *gDDHandle = nil;
+
 static BOOL DDIsCarPlayScreen(UIScreen *screen) {
     if (!screen || screen == UIScreen.mainScreen) return NO;
     CGSize s = screen.bounds.size;
@@ -36,6 +39,7 @@ static void DDSetSidebarVisible(BOOL visible) {
     bar.frame=f;
 }
 
+@class DDRevealHandle;
 @interface DDRevealHandle : UIControl
 @end
 @implementation DDRevealHandle
@@ -47,7 +51,7 @@ static void DDSetSidebarVisible(BOOL visible) {
     }
     return self;
 }
-- (void)showBar { DDSetSidebarVisible(YES); self.hidden=YES; }
+- (void)showBar { gDDFullscreen=NO; DDSetSidebarVisible(YES); self.hidden=YES; }
 @end
 
 static void DDInstallRevealHandle(void) {
@@ -55,7 +59,7 @@ static void DDInstallRevealHandle(void) {
         if (!DDIsCarPlayScreen(w.screen)) continue;
         if ([w viewWithTag:0x444448]) continue;
         DDRevealHandle *h=[[DDRevealHandle alloc] initWithFrame:CGRectMake(2,96,8,48)];
-        h.tag=0x444448;
+        h.tag=0x444448; h.hidden=YES; gDDHandle=h;
         [w addSubview:h];
         [w bringSubviewToFront:h];
     }
@@ -81,7 +85,29 @@ static void DDInstallRevealHandle(void) {
 
 %hook DBStatusBarWindow
 - (void)setFrame:(CGRect)frame {
+    if (gDDFullscreen && frame.size.width > 0.0) frame.origin.x=-fabs(frame.size.width);
     %orig(frame);
+}
+%end
+
+// Long-press the native CarPlay status/sidebar to enter full screen.
+// The native six-dot Home control is not intercepted; a separate edge handle exits full screen.
+%hook DBStatusBarView
+- (void)didMoveToWindow {
+    %orig;
+    if (!self.window || [self viewWithTag:0x44444C]) return;
+    UILongPressGestureRecognizer *lp=[[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(dd_toggleFull:)];
+    lp.minimumPressDuration=0.65;
+    lp.cancelsTouchesInView=NO;
+    [self addGestureRecognizer:lp];
+    UIView *marker=[[UIView alloc] initWithFrame:CGRectZero]; marker.tag=0x44444C; marker.hidden=YES; [self addSubview:marker];
+}
+%new
+- (void)dd_toggleFull:(UILongPressGestureRecognizer *)g {
+    if (g.state!=UIGestureRecognizerStateBegan) return;
+    gDDFullscreen=YES;
+    DDSetSidebarVisible(NO);
+    if (gDDHandle) gDDHandle.hidden=NO;
 }
 %end
 
