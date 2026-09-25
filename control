@@ -1,8 +1,8 @@
-Package: com.chuong.duodashsidebarcontrol
-Name: DuoDash Sidebar Control
+Package: com.chuong.duodashunifiedfullscreen
+Name: DuoDash Unified Fullscreen
 Version: 1.0.0
 Architecture: iphoneos-arm64
-Description: Sidebar hide/reveal add-on for the verified DuoDash Geometry Fix
+Description: Integrated 427x240 fullscreen correction for DuoDash 1.1.3 base
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
