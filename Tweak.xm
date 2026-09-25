@@ -108,7 +108,7 @@ static void DDInstallRevealHandle(void) {
 %hook UIWindow
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets v=%orig;
-    if (DDIsCarPlayScreen(self.screen)) return UIEdgeInsetsZero;
+    if (gDDFullscreen && DDIsCarPlayScreen(self.screen)) return UIEdgeInsetsZero;
     return v;
 }
 %end
@@ -116,7 +116,7 @@ static void DDInstallRevealHandle(void) {
 %hook UIView
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets v=%orig;
-    if (DDIsCarPlayScreen(self.window.screen)) return UIEdgeInsetsZero;
+    if (gDDFullscreen && DDIsCarPlayScreen(self.window.screen)) return UIEdgeInsetsZero;
     return v;
 }
 %end
