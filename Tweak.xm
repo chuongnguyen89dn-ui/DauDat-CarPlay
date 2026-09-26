@@ -41,8 +41,7 @@ static NSString *DDSnapshot(void){
     return [NSString stringWithFormat:@"fullscreen=%d bar=%@/%@ hidden=%d button=%@/%@ host=%@/%@ root=%@/%@ content=%@/%@ super=%@/%@",DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?NSStringFromCGRect(bar.bounds):@"nil",bar?bar.hidden:-1,b?@"YES":@"NO",b?NSStringFromCGRect(b.frame):@"nil",h?NSStringFromCGRect(h.frame):@"nil",h?NSStringFromCGRect(h.bounds):@"nil",r?NSStringFromCGRect(r.frame):@"nil",r?NSStringFromCGRect(r.bounds):@"nil",c?NSStringFromCGRect(c.frame):@"nil",c?NSStringFromCGRect(c.bounds):@"nil",c.superview?NSStringFromCGRect(c.superview.frame):@"nil",c.superview?NSStringFromCGRect(c.superview.bounds):@"nil"];
 }
 static void DDTrace(NSString*event){
-    NSString*line=[NSString stringWithFormat:@"%@ | %@ | %@
-",NSDate.date,event,DDSnapshot()];
+    NSString*line=[NSString stringWithFormat:@"%@ | %@ | %@\\n",NSDate.date,event,DDSnapshot()];
     CFPropertyListRef old=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
     NSString*prev=(old&&CFGetTypeID(old)==CFStringGetTypeID())?[(__bridge NSString*)old copy]:@"";
     if(old)CFRelease(old);
