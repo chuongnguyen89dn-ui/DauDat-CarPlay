@@ -66,6 +66,30 @@ static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
     if (vc.presentedViewController) DDWalkVC(vc.presentedViewController,block);
     for (UIViewController *child in vc.childViewControllers) DDWalkVC(child,block);
 }
+static void DDInvokeNoArg(id obj, NSString *name) {
+    SEL sel=NSSelectorFromString(name);
+    if (!obj || ![obj respondsToSelector:sel]) return;
+    NSMethodSignature *sig=[obj methodSignatureForSelector:sel];
+    if (!sig || sig.numberOfArguments != 2) return;
+    NSInvocation *inv=[NSInvocation invocationWithMethodSignature:sig];
+    inv.target=obj; inv.selector=sel; [inv invoke];
+}
+static void DDRefreshSceneFrames(void) {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        NSString *role=scene.session.role ?: @"";
+        if ([role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location==NSNotFound) continue;
+        for (UIWindow *w in ws.windows) {
+            DDWalkVC(w.rootViewController, ^(UIViewController *vc){
+                DDInvokeNoArg(vc, @"updateAllSceneFramesImmediately:");
+                DDInvokeNoArg(vc, @"updateSceneFrameImmediately:");
+                [vc.view setNeedsLayout];
+                [vc.view layoutIfNeeded];
+            });
+        }
+    }
+}
 static void DDForceRelayout(void);
 static void DDApplyNativeFullscreen(BOOL enabled) {
     DDTrace(enabled?@"TOGGLE_REQUEST_ON":@"TOGGLE_REQUEST_OFF");
@@ -91,6 +115,7 @@ static void DDApplyNativeFullscreen(BOOL enabled) {
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:@"com.chuong.duodash.fullscreen.changed" object:nil];
     DDForceRelayout();
+    DDRefreshSceneFrames();
     DDTrace(@"CHROME_MUTATED");
     dispatch_async(dispatch_get_main_queue(), ^{ DDTrace(@"LAYOUT_NEXT_RUNLOOP"); });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(250*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_250MS"); });
