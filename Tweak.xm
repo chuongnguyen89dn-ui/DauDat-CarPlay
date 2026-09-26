@@ -1,6 +1,8 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <math.h>
+#import "DauDatConfig.h"
+#import "DauDatDoctor.h"
 
 static const CGFloat DDW = 427.0;
 static const CGFloat DDH = 240.0;
@@ -59,6 +61,21 @@ static BOOL DDReserved(CGRect f) {
 }
 %end
 
+static UIWindow *DDDiagnosticStatusBarWindow(void) {
+    Class cls = NSClassFromString(@"DBStatusBarWindow");
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        for (UIWindow *w in ((UIWindowScene *)scene).windows) {
+            if (cls && [w isKindOfClass:cls]) return w;
+        }
+    }
+    return nil;
+}
+
 %ctor {
     %init;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        DDDoctorLogEvent(@"AUTO_DIAGNOSTIC", @"Unified fullscreen runtime snapshot");
+        DDDoctorWrite(NO, YES, DDDiagnosticStatusBarWindow());
+    });
 }
