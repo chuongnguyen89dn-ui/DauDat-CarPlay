@@ -7,9 +7,14 @@
 
 static CGFloat DDChromeWidth(UIScreen *s) {
     CGFloat best=0;
-    for (UIWindow *w in UIApplication.sharedApplication.windows) {
-        NSString *cn=NSStringFromClass(w.class);
-        if (([cn containsString:@"DBStatusBarWindow"] || [cn containsString:@"DBDockWindow"]) && (!s || w.screen==s) && w.bounds.size.width>1) best=MAX(best,w.bounds.size.width);
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        if (s && ws.screen != s) continue;
+        for (UIWindow *w in ws.windows) {
+            NSString *cn=NSStringFromClass(w.class);
+            if (([cn containsString:@"DBStatusBarWindow"] || [cn containsString:@"DBDockWindow"]) && w.bounds.size.width>1) best=MAX(best,w.bounds.size.width);
+        }
     }
     return best;
 }
