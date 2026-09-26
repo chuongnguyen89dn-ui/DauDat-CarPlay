@@ -115,7 +115,7 @@ static void DDSetFullscreen(BOOL enabled) {
     if (!bar || !content || !content.superview) { DDTrace(@"FULLSCREEN_ABORT_MISSING_HOST"); return; }
     DDTrace(enabled?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
     if (enabled) {
-        DDNormalDashboardFrame=content.frame; DDHaveDashboardFrame=YES; DDFullscreen=YES;
+        DDNormalDashboardFrame=content.frame; DDHaveDashboardFrame=YES;\n        DDNormalHostWindowFrame=content.window.frame; DDHaveHostWindowFrame=YES; DDFullscreen=YES;
         DDSetNativeChromeHidden(YES); bar.hidden=YES; DDForceDashboardGeometry();
     } else {
         DDFullscreen=NO; bar.hidden=NO; DDSetNativeChromeHidden(NO);
@@ -135,7 +135,7 @@ static void DDInstallButton(UIWindow *bar) {
         b.autoresizingMask=UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;
         UIImageSymbolConfiguration *cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
         [b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];
-        b.tintColor=UIColor.whiteColor; b.accessibilityLabel=@"Fullscreen";
+        b.tintColor=UIColor.whiteColor; b.imageView.backgroundColor=UIColor.clearColor; b.accessibilityLabel=@"Fullscreen";
         [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ (void)a; DDSetFullscreen(YES); }]
           forControlEvents:UIControlEventTouchUpInside];
         [bar addSubview:b]; DDTrace(@"FULLSCREEN_BUTTON_CREATED");
