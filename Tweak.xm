@@ -112,6 +112,57 @@ static BOOL DDChromeWindow(UIWindow *w) {
     return [cn containsString:@"DBStatusBarWindow"] || [cn containsString:@"DBDockWindow"];
 }
 
+static void DDInvokeBool(id obj, NSString *name, BOOL value) {
+    SEL sel=NSSelectorFromString(name);
+    if (!obj || ![obj respondsToSelector:sel]) return;
+    NSMethodSignature *sig=[obj methodSignatureForSelector:sel];
+    if (!sig || sig.numberOfArguments < 3) return;
+    NSInvocation *inv=[NSInvocation invocationWithMethodSignature:sig];
+    inv.target=obj; inv.selector=sel; [inv setArgument:&value atIndex:2]; [inv invoke];
+}
+static void DDInvokeNoArg(id obj, NSString *name) {
+    SEL sel=NSSelectorFromString(name);
+    if (!obj || ![obj respondsToSelector:sel]) return;
+    NSMethodSignature *sig=[obj methodSignatureForSelector:sel];
+    if (!sig || sig.numberOfArguments != 2) return;
+    NSInvocation *inv=[NSInvocation invocationWithMethodSignature:sig];
+    inv.target=obj; inv.selector=sel; [inv invoke];
+}
+static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
+    if (!vc) return;
+    block(vc);
+    if (vc.presentedViewController) DDWalkVC(vc.presentedViewController,block);
+    for (UIViewController *child in vc.childViewControllers) DDWalkVC(child,block);
+}
+static void DDSetNativeCarPlayChrome(BOOL hidden) {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        if (!DDCP(ws.screen)) continue;
+        for (UIWindow *w in ws.windows) {
+            DDWalkVC(w.rootViewController, ^(UIViewController *vc){
+                DDInvokeBool(vc, @"setDefaultAppChromeHidden:", hidden);
+                DDInvokeBool(vc, @"setNativeChromeHidden:", hidden);
+            });
+        }
+    }
+}
+static void DDRefreshNativeCarPlayScenes(void) {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        if (!DDCP(ws.screen)) continue;
+        for (UIWindow *w in ws.windows) {
+            DDWalkVC(w.rootViewController, ^(UIViewController *vc){
+                DDInvokeNoArg(vc, @"updateAllSceneFramesImmediately");
+                DDInvokeNoArg(vc, @"updateSceneFrameImmediately");
+                [vc.view setNeedsLayout];
+                [vc.view layoutIfNeeded];
+            });
+        }
+    }
+}
+
 static void DDSetChromeHidden(BOOL hidden) {
     if (!DDChromeState) DDChromeState=[NSMapTable weakToStrongObjectsMapTable];
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
@@ -185,15 +236,22 @@ static void DDApplyNativeFullscreen(BOOL enabled) {
         if (!CGRectIsEmpty(normal)) { DDNormalFrame=normal; DDHaveNormalFrame=YES; }
         CGRect full=[host shellBounds];
         DDFullscreen=YES;
-        // Airaw order: resize hosted root first, then hide native chrome, then relayout controls/scenes.
+        // Airaw-derived path: ask CarPlay to hide its own chrome, then refresh scene geometry.
+        // Keep the direct window hide only as a fallback for builds where the private controller is absent.
+        DDSetNativeCarPlayChrome(YES);
+        DDRefreshNativeCarPlayScenes();
         DDApplyContentFrame(full);
         DDSetChromeHidden(YES);
+        DDRefreshNativeCarPlayScenes();
         DDRelayoutDuoDash();
     } else {
         DDFullscreen=NO;
         DDSetChromeHidden(NO);
+        DDSetNativeCarPlayChrome(NO);
+        DDRefreshNativeCarPlayScenes();
         CGRect normal=DDHaveNormalFrame?DDNormalFrame:[host carPlayUsableBounds];
         DDApplyContentFrame(normal);
+        DDRefreshNativeCarPlayScenes();
         // Re-read DuoDash's own normal usable geometry after CarPlay chrome is visible again.
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(180*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{
             if (DDFullscreen) return;
