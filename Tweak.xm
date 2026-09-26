@@ -8,6 +8,35 @@
 static const CGFloat DDSide = 45.0;
 
 static BOOL DDFullscreen = NO;
+static NSUInteger DDTraceSeq = 0;
+static NSString *DDTraceRect(CGRect r) { return NSStringFromCGRect(r); }
+static void DDTrace(NSString *event) {
+    NSMutableString *s=[NSMutableString stringWithFormat:@"DDTRACE #%lu event=%@ fullscreen=%d process=%@\n",
+                        (unsigned long)++DDTraceSeq,event,DDFullscreen,NSProcessInfo.processInfo.processName];
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        [s appendFormat:@"SCENE role=%@ screen=%@ native=%@ scale=%.2f windows=%lu\n",
+         scene.session.role,DDTraceRect(ws.screen.bounds),DDTraceRect(ws.screen.nativeBounds),ws.screen.scale,(unsigned long)ws.windows.count];
+        for (UIWindow *w in ws.windows) {
+            NSString *cn=NSStringFromClass(w.class);
+            UIView *rv=w.rootViewController.view;
+            [s appendFormat:@"WIN %@ frame=%@ bounds=%@ safe=%@ hidden=%d root=%@ rootFrame=%@ rootBounds=%@ rootSafe=%@\n",
+             cn,DDTraceRect(w.frame),DDTraceRect(w.bounds),NSStringFromUIEdgeInsets(w.safeAreaInsets),w.hidden,
+             w.rootViewController?NSStringFromClass(w.rootViewController.class):@"nil",
+             rv?DDTraceRect(rv.frame):@"nil",rv?DDTraceRect(rv.bounds):@"nil",
+             rv?NSStringFromUIEdgeInsets(rv.safeAreaInsets):@"nil"];
+        }
+    }
+    NSString *key=@"payload.DDTRACE";
+    CFPropertyListRef old=CFPreferencesCopyAppValue((__bridge CFStringRef)key,CFSTR("com.chuong.daudat.diagnostic"));
+    NSString *prev=(old && CFGetTypeID(old)==CFStringGetTypeID()) ? [(__bridge NSString *)old copy] : @"";
+    NSString *all=[prev stringByAppendingFormat:@"\n%@",s];
+    if (old) CFRelease(old);
+    CFPreferencesSetAppValue((__bridge CFStringRef)key,(__bridge CFStringRef)all,CFSTR("com.chuong.daudat.diagnostic"));
+    CFPreferencesAppSynchronize(CFSTR("com.chuong.daudat.diagnostic"));
+    NSLog(@"%@",s);
+}
 static BOOL DDDuoDashPresent(void) {
     return NSClassFromString(@"CNABAppPickerController") != Nil ||
            NSClassFromString(@"CNABPickerCell") != Nil;
@@ -26,7 +55,9 @@ static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
     for (UIViewController *child in vc.childViewControllers) DDWalkVC(child,block);
 }
 static void DDApplyNativeFullscreen(BOOL enabled) {
+    DDTrace(enabled?@"TOGGLE_REQUEST_ON":@"TOGGLE_REQUEST_OFF");
     DDFullscreen=enabled;
+    DDTrace(@"STATE_CHANGED");
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if (![scene isKindOfClass:UIWindowScene.class]) continue;
         UIWindowScene *ws=(UIWindowScene *)scene;
@@ -46,6 +77,10 @@ static void DDApplyNativeFullscreen(BOOL enabled) {
         }
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:@"com.chuong.duodash.fullscreen.changed" object:nil];
+    DDTrace(@"CHROME_MUTATED");
+    dispatch_async(dispatch_get_main_queue(), ^{ DDTrace(@"LAYOUT_NEXT_RUNLOOP"); });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(250*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_250MS"); });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1000*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_1S"); });
 }
 static void DDToggleFullscreen(void) { if (DDDuoDashPresent()) DDApplyNativeFullscreen(!DDFullscreen); }
 
@@ -79,7 +114,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     for (UITouch *t in event.allTouches) {
         if (t.phase != UITouchPhaseEnded) continue;
         CGPoint p=[t locationInView:self];
-        if (p.x <= 34.0 && p.y <= 34.0) { DDApplyNativeFullscreen(NO); break; }
+        if (p.x <= 34.0 && p.y <= 34.0) { DDTrace(@"RESTORE_HITZONE"); DDApplyNativeFullscreen(NO); break; }
     }
 }
 - (UIEdgeInsets)safeAreaInsets {
@@ -119,6 +154,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     if (!DDDuoDashPresent()) return;
     UIView *host=(UIView *)(id)self;
     if ([host viewWithTag:771133]) return;
+    DDTrace(@"FULLSCREEN_BUTTON_CREATE");
     UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem];
     b.tag=771133; b.frame=CGRectMake(4,4,36,36);
     b.layer.cornerRadius=9.0;
@@ -126,7 +162,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     [b setTitle:@"⛶" forState:UIControlStateNormal];
     b.titleLabel.font=[UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
     [b setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
+    [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDTrace(@"FULLSCREEN_BUTTON_TAP"); DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
     [host addSubview:b];
 }
 - (void)setFrame:(CGRect)frame {
@@ -262,6 +298,12 @@ static void DDExportPendingReports(void) {
             }
         } else if (value) CFRelease(value);
     }
+    CFPropertyListRef trace=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
+    if (trace && CFGetTypeID(trace)==CFStringGetTypeID()) {
+        NSString *path=@"/var/mobile/Documents/DuoDash-DDTRACE.txt";
+        [(__bridge NSString *)trace writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    }
+    if (trace) CFRelease(trace);
 }
 
 static void DDDiagnosticReady(int token) {
