@@ -119,6 +119,10 @@ static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusB
     [snap appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n",DDDoctorGeometryAssessment()];
     NSString *events=[NSString stringWithContentsOfFile:DDDoctorEventPath() encoding:NSUTF8StringEncoding error:nil];
     [snap appendFormat:@"\n=== RUNTIME EVENTS ===\n%@\n",events.length?events:@"NO_EVENTS"];
+    CFPropertyListRef shared=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
+    NSString *sharedTrace=(shared && CFGetTypeID(shared)==CFStringGetTypeID())?[(__bridge NSString *)shared copy]:@"";
+    if (shared) CFRelease(shared);
+    [snap appendFormat:@"\n=== SHARED CARPLAY TRACE ===\n%@\n",sharedTrace.length?sharedTrace:@"NO_SHARED_TRACE"];
     NSString *path=baseline?DDDoctorBaselinePath():DDDoctorReportPath();
     if (!baseline) {
         NSString *b=[NSString stringWithContentsOfFile:DDDoctorBaselinePath() encoding:NSUTF8StringEncoding error:nil];
