@@ -5,7 +5,14 @@
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
-static const CGFloat DDSide = 45.0;
+static CGFloat DDChromeWidth(UIScreen *s) {
+    CGFloat best=0;
+    for (UIWindow *w in UIApplication.sharedApplication.windows) {
+        NSString *cn=NSStringFromClass(w.class);
+        if (([cn containsString:@"DBStatusBarWindow"] || [cn containsString:@"DBDockWindow"]) && (!s || w.screen==s) && w.bounds.size.width>1) best=MAX(best,w.bounds.size.width);
+    }
+    return best;
+}
 
 static BOOL DDFullscreen = NO;
 static NSUInteger DDTraceSeq = 0;
@@ -77,12 +84,27 @@ static void DDApplyNativeFullscreen(BOOL enabled) {
         }
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:@"com.chuong.duodash.fullscreen.changed" object:nil];
-    DDTrace(@"CHROME_MUTATED");
+    DDForceRelayout();\n    DDTrace(@"CHROME_MUTATED");
     dispatch_async(dispatch_get_main_queue(), ^{ DDTrace(@"LAYOUT_NEXT_RUNLOOP"); });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(250*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_250MS"); });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1000*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_1S"); });
 }
 static void DDToggleFullscreen(void) { if (DDDuoDashPresent()) DDApplyNativeFullscreen(!DDFullscreen); }
+static void DDForceRelayout(void) {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        if ([scene.session.role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location==NSNotFound) continue;
+        for (UIWindow *w in ws.windows) {
+            if (DDFullscreen) {
+                NSString *cn=NSStringFromClass(w.class);
+                if (![cn containsString:@"DBStatusBarWindow"] && ![cn containsString:@"DBDockWindow"]) w.frame=ws.screen.bounds;
+            }
+            [w.rootViewController.view setNeedsLayout];
+            [w.rootViewController.view layoutIfNeeded];
+        }
+    }
+}
 
 
 static BOOL DDCP(UIScreen *s) {
@@ -99,11 +121,16 @@ static BOOL DDCP(UIScreen *s) {
 
 static BOOL DDReserved(CGRect f, UIScreen *s) {
     if (!s) return NO;
-    return fabs(f.origin.x-DDSide)<1.5 && fabs(f.size.width-(s.bounds.size.width-DDSide))<3.0;
+    CGFloat side=DDChromeWidth(s);
+    if (side < 1.0) return NO;
+    return fabs(f.origin.x-side)<2.0 && fabs(f.size.width-(s.bounds.size.width-side))<4.0;
 }
 
 static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
-    if (DDFullscreen && fabs(original.left-DDSide)<1.5) original.left=0.0;
+    if (DDFullscreen) {
+        CGFloat side=DDChromeWidth(nil);
+        if (side>0 && fabs(original.left-side)<2.0) original.left=0.0;
+    }
     return original;
 }
 
@@ -156,18 +183,18 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     if ([host viewWithTag:771133]) return;
     DDTrace(@"FULLSCREEN_BUTTON_CREATE");
     UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem];
-    b.tag=771133; b.frame=CGRectMake(4,4,36,36);
-    b.layer.cornerRadius=9.0;
-    b.backgroundColor=[UIColor colorWithWhite:0 alpha:0.35];
-    [b setTitle:@"⛶" forState:UIControlStateNormal];
-    b.titleLabel.font=[UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
-    [b setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    b.tag=771133; b.frame=CGRectMake(4,4,36,36);\n    b.layer.cornerRadius=9.0;\n    b.backgroundColor=UIColor.clearColor;
+    UIImageSymbolConfiguration *cfg=[UIImageSymbolConfiguration configurationWithPointSize:18 weight:UIImageSymbolWeightSemibold];
+    UIImage *img=[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg];
+    [b setImage:img forState:UIControlStateNormal];
+    b.tintColor=UIColor.whiteColor;
+    b.accessibilityLabel=@"DuoDash Fullscreen";
     [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDTrace(@"FULLSCREEN_BUTTON_TAP"); DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
     [host addSubview:b];
 }
 - (void)setFrame:(CGRect)frame {
     if (DDFullscreen && DDCP(((UIWindow *)self).screen)) {
-        CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDSide;
+        CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDChromeWidth(((UIWindow *)self).screen);
         frame.origin.x = -fabs(width);
     }
     %orig(frame);
@@ -176,7 +203,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     %orig;
     if (DDFullscreen && DDCP(screen)) {
         CGRect f=((UIWindow *)self).frame;
-        f.origin.x=-fabs(f.size.width > 1.0 ? f.size.width : DDSide);
+        f.origin.x=-fabs(f.size.width > 1.0 ? f.size.width : DDChromeWidth(screen));
         ((UIWindow *)self).frame=f;
     }
 }
