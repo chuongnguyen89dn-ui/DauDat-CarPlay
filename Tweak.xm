@@ -72,7 +72,8 @@ static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
     if (vc.presentedViewController) DDWalkVC(vc.presentedViewController,block);
     for (UIViewController *child in vc.childViewControllers) DDWalkVC(child,block);
 }
-static void DDForceRelayout(void);\nstatic void DDApplyNativeFullscreen(BOOL enabled) {
+static void DDForceRelayout(void);
+static void DDApplyNativeFullscreen(BOOL enabled) {
     DDTrace(enabled?@"TOGGLE_REQUEST_ON":@"TOGGLE_REQUEST_OFF");
     DDFullscreen=enabled;
     DDTrace(@"STATE_CHANGED");
@@ -95,7 +96,8 @@ static void DDForceRelayout(void);\nstatic void DDApplyNativeFullscreen(BOOL ena
         }
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:@"com.chuong.duodash.fullscreen.changed" object:nil];
-    DDForceRelayout();\n    DDTrace(@"CHROME_MUTATED");
+    DDForceRelayout();
+    DDTrace(@"CHROME_MUTATED");
     dispatch_async(dispatch_get_main_queue(), ^{ DDTrace(@"LAYOUT_NEXT_RUNLOOP"); });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(250*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_250MS"); });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1000*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"LAYOUT_1S"); });
@@ -194,7 +196,9 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     if ([host viewWithTag:771133]) return;
     DDTrace(@"FULLSCREEN_BUTTON_CREATE");
     UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem];
-    b.tag=771133; b.frame=CGRectMake(4,4,36,36);\n    b.layer.cornerRadius=9.0;\n    b.backgroundColor=UIColor.clearColor;
+    b.tag=771133; b.frame=CGRectMake(4,4,36,36);
+    b.layer.cornerRadius=9.0;
+    b.backgroundColor=UIColor.clearColor;
     UIImageSymbolConfiguration *cfg=[UIImageSymbolConfiguration configurationWithPointSize:18 weight:UIImageSymbolWeightSemibold];
     UIImage *img=[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg];
     [b setImage:img forState:UIControlStateNormal];
