@@ -5,19 +5,28 @@
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
-static const CGFloat DDW = 427.0;
-static const CGFloat DDH = 240.0;
 static const CGFloat DDSide = 45.0;
 
 static BOOL DDCP(UIScreen *s) {
     if (!s || s == UIScreen.mainScreen) return NO;
-    CGSize z = s.bounds.size;
-    return (fabs(z.width-DDW)<3.0 && fabs(z.height-DDH)<3.0) ||
-           (fabs(z.height-DDW)<3.0 && fabs(z.width-DDH)<3.0);
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        if (ws.screen != s) continue;
+        NSString *role=scene.session.role ?: @"";
+        if ([role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location != NSNotFound) return YES;
+    }
+    return NO;
 }
 
-static BOOL DDReserved(CGRect f) {
-    return fabs(f.origin.x-DDSide)<3.0 || (f.size.width>370.0 && f.size.width<390.0);
+static BOOL DDReserved(CGRect f, UIScreen *s) {
+    if (!s) return NO;
+    return fabs(f.origin.x-DDSide)<1.5 && fabs(f.size.width-(s.bounds.size.width-DDSide))<3.0;
+}
+
+static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
+    if (fabs(original.left-DDSide)<1.5) original.left=0.0;
+    return original;
 }
 
 %hook UIWindow
