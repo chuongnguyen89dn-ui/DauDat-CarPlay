@@ -117,7 +117,8 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 - (void)didAddSubview:(UIView *)subview {
     %orig;
     if (!DDDuoDashPresent()) return;
-    if ([self viewWithTag:771133]) return;
+    UIView *host=(UIView *)(id)self;
+    if ([host viewWithTag:771133]) return;
     UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem];
     b.tag=771133; b.frame=CGRectMake(4,4,36,36);
     b.layer.cornerRadius=9.0;
@@ -126,7 +127,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     b.titleLabel.font=[UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
     [b setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
     [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
-    [self addSubview:b];
+    [host addSubview:b];
 }
 - (void)setFrame:(CGRect)frame {
     if (DDFullscreen && DDCP(((UIWindow *)self).screen)) {
