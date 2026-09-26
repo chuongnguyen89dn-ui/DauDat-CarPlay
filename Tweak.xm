@@ -72,10 +72,31 @@ static UIWindow *DDDiagnosticStatusBarWindow(void) {
     return nil;
 }
 
+static void DDWriteProcessDiagnostic(void) {
+    NSString *process = NSProcessInfo.processInfo.processName ?: @"Unknown";
+    if (![process isEqualToString:@"CarPlay"] && ![process isEqualToString:@"CarPlayTemplateUIHost"]) return;
+
+    UIWindow *bar = DDDiagnosticStatusBarWindow();
+    NSMutableString *report = [[DDDoctorSnapshot(YES, bar) mutableCopy] ?: [NSMutableString string] mutableCopy];
+    [report appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n", DDDoctorGeometryAssessment()];
+
+    NSString *safeName = [process stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+    NSString *path = [@"/var/mobile/Documents" stringByAppendingPathComponent:
+                      [NSString stringWithFormat:@"DauDat-%@.txt", safeName]];
+    [report writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    DDDoctorLogEvent(@"PROCESS_DIAGNOSTIC", path);
+}
+
 %ctor {
     %init;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        DDDoctorLogEvent(@"AUTO_DIAGNOSTIC", @"Unified fullscreen runtime snapshot");
-        DDDoctorWrite(NO, YES, DDDiagnosticStatusBarWindow());
-    });
+    NSString *process = NSProcessInfo.processInfo.processName ?: @"";
+    if ([process isEqualToString:@"CarPlay"] || [process isEqualToString:@"CarPlayTemplateUIHost"]) {
+        DDDoctorLogEvent(@"INJECT_PROCESS_LOGGER", process);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            DDWriteProcessDiagnostic();
+        });
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            DDWriteProcessDiagnostic();
+        });
+    }
 }
