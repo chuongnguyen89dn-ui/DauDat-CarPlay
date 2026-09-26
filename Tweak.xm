@@ -61,17 +61,6 @@ static void DDInvokeBool(id obj, NSString *name, BOOL value) {
     NSInvocation *inv=[NSInvocation invocationWithMethodSignature:sig];
     inv.target=obj; inv.selector=sel; [inv setArgument:&value atIndex:2]; [inv invoke];
 }
-static void DDProbeAirawSelectors(id obj) {
-    if (!obj) return;
-    NSArray *names=@[@"requestFullscreenToggle",@"toggleFullscreen",@"setDefaultAppChromeHidden:",@"_setFullScreenEnabled:",@"setNativeChromeHidden:",@"preferredChromeSizeForHostSize:",@"updateSceneFrame:",@"updateSceneFrameImmediately:",@"updateAllSceneFramesImmediately:",@"arwExitNativeFullscreen"];
-    for (NSString *name in names) {
-        SEL sel=NSSelectorFromString(name);
-        if (![obj respondsToSelector:sel]) continue;
-        NSMethodSignature *sig=[obj methodSignatureForSelector:sel];
-        NSLog(@"DDTRACE AIRAW_SELECTOR class=%@ selector=%@ argc=%lu return=%s",
-              NSStringFromClass([obj class]),name,(unsigned long)sig.numberOfArguments,sig.methodReturnType);
-    }
-}
 static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
     if (!vc) return; block(vc);
     if (vc.presentedViewController) DDWalkVC(vc.presentedViewController,block);
