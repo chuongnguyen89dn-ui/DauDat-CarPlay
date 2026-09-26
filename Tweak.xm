@@ -7,6 +7,49 @@
 
 static const CGFloat DDSide = 45.0;
 
+static BOOL DDFullscreen = NO;
+static BOOL DDDuoDashPresent(void) {
+    return NSClassFromString(@"CNABAppPickerController") != Nil ||
+           NSClassFromString(@"CNABPickerCell") != Nil;
+}
+static void DDInvokeBool(id obj, NSString *name, BOOL value) {
+    SEL sel=NSSelectorFromString(name);
+    if (!obj || ![obj respondsToSelector:sel]) return;
+    NSMethodSignature *sig=[obj methodSignatureForSelector:sel];
+    if (!sig || sig.numberOfArguments < 3) return;
+    NSInvocation *inv=[NSInvocation invocationWithMethodSignature:sig];
+    inv.target=obj; inv.selector=sel; [inv setArgument:&value atIndex:2]; [inv invoke];
+}
+static void DDWalkVC(UIViewController *vc, void (^block)(UIViewController *)) {
+    if (!vc) return; block(vc);
+    if (vc.presentedViewController) DDWalkVC(vc.presentedViewController,block);
+    for (UIViewController *child in vc.childViewControllers) DDWalkVC(child,block);
+}
+static void DDApplyNativeFullscreen(BOOL enabled) {
+    DDFullscreen=enabled;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        NSString *role=scene.session.role ?: @"";
+        if ([role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location == NSNotFound) continue;
+        for (UIWindow *w in ws.windows) {
+            DDWalkVC(w.rootViewController, ^(UIViewController *vc){
+                DDInvokeBool(vc, @"setDefaultAppChromeHidden:", enabled);
+                DDInvokeBool(vc, @"_setFullScreenEnabled:", enabled);
+                DDInvokeBool(vc, @"setNativeChromeHidden:", enabled);
+                DDInvokeBool(vc, @"setIsFullscreen:", enabled);
+            });
+            NSString *cn=NSStringFromClass(w.class);
+            if ([cn containsString:@"DBStatusBarWindow"] || [cn containsString:@"DBDockWindow"]) {
+                w.hidden=enabled;
+            }
+        }
+    }
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"com.chuong.duodash.fullscreen.changed" object:nil];
+}
+static void DDToggleFullscreen(void) { if (DDDuoDashPresent()) DDApplyNativeFullscreen(!DDFullscreen); }
+
+
 static BOOL DDCP(UIScreen *s) {
     if (!s || s == UIScreen.mainScreen) return NO;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
@@ -30,6 +73,15 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 }
 
 %hook UIWindow
+- (void)sendEvent:(UIEvent *)event {
+    %orig;
+    if (!DDFullscreen || !DDDuoDashPresent() || event.type != UIEventTypeTouches) return;
+    for (UITouch *t in event.allTouches) {
+        if (t.phase != UITouchPhaseEnded) continue;
+        CGPoint p=[t locationInView:self];
+        if (p.x <= 34.0 && p.y <= 34.0) { DDApplyNativeFullscreen(NO); break; }
+    }
+}
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets original = %orig;
     if (DDCP(self.screen)) return DDCarPlayInsets(original);
@@ -62,6 +114,21 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 %end
 
 %hook DBStatusBarWindow
+- (void)didAddSubview:(UIView *)subview {
+    %orig;
+    if (!DDDuoDashPresent()) return;
+    if ([self viewWithTag:771133]) return;
+    UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem];
+    b.tag=771133; b.frame=CGRectMake(4,4,36,36);
+    b.layer.cornerRadius=9.0;
+    b.backgroundColor=[UIColor colorWithWhite:0 alpha:0.35];
+    [b setTitle:@"⛶" forState:UIControlStateNormal];
+    b.titleLabel.font=[UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
+    [b setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    [b addTarget:[UIApplication sharedApplication].delegate action:@selector(dd_dummy:) forControlEvents:UIControlEventTouchUpInside];
+    [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
+    [self addSubview:b];
+}
 - (void)setFrame:(CGRect)frame {
     if (DDCP(((UIWindow *)self).screen)) {
         CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDSide;
