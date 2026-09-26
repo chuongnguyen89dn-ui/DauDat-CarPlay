@@ -51,7 +51,7 @@ static void DDToggleFullscreen(void) { if (DDDuoDashPresent()) DDApplyNativeFull
 
 
 static BOOL DDCP(UIScreen *s) {
-    if (!s || s == UIScreen.mainScreen) return NO;
+    if (!s) return NO;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if (![scene isKindOfClass:UIWindowScene.class]) continue;
         UIWindowScene *ws=(UIWindowScene *)scene;
@@ -68,7 +68,7 @@ static BOOL DDReserved(CGRect f, UIScreen *s) {
 }
 
 static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
-    if (fabs(original.left-DDSide)<1.5) original.left=0.0;
+    if (DDFullscreen && fabs(original.left-DDSide)<1.5) original.left=0.0;
     return original;
 }
 
@@ -104,7 +104,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     if ([cls isEqualToString:@"DBStatusBarView"]) return;
 
     CGRect f = self.frame;
-    if (DDReserved(f, w.screen)) {
+    if (DDFullscreen && DDReserved(f, w.screen)) {
         f.origin.x = 0.0;
         f.size.width = w.screen.bounds.size.width;
         self.frame = f;
@@ -125,12 +125,11 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
     [b setTitle:@"⛶" forState:UIControlStateNormal];
     b.titleLabel.font=[UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
     [b setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    [b addTarget:[UIApplication sharedApplication].delegate action:@selector(dd_dummy:) forControlEvents:UIControlEventTouchUpInside];
     [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ DDToggleFullscreen(); }] forControlEvents:UIControlEventTouchUpInside];
     [self addSubview:b];
 }
 - (void)setFrame:(CGRect)frame {
-    if (DDCP(((UIWindow *)self).screen)) {
+    if (DDFullscreen && DDCP(((UIWindow *)self).screen)) {
         CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDSide;
         frame.origin.x = -fabs(width);
     }
@@ -138,7 +137,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 }
 - (void)didMoveToScreen:(UIScreen *)screen {
     %orig;
-    if (DDCP(screen)) {
+    if (DDFullscreen && DDCP(screen)) {
         CGRect f=((UIWindow *)self).frame;
         f.origin.x=-fabs(f.size.width > 1.0 ? f.size.width : DDSide);
         ((UIWindow *)self).frame=f;
@@ -149,7 +148,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 %hook DBNotificationWindow
 - (void)setFrame:(CGRect)frame {
     UIScreen *s=((UIWindow *)self).screen;
-    if (DDCP(s) && DDReserved(frame,s)) {
+    if (DDFullscreen && DDCP(s) && DDReserved(frame,s)) {
         frame.origin.x=0.0;
         frame.size.width=s.bounds.size.width;
     }
@@ -160,7 +159,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 %hook DBAnimationView
 - (void)setFrame:(CGRect)frame {
     UIScreen *s=((UIView *)self).window.screen;
-    if (DDCP(s) && DDReserved(frame,s)) {
+    if (DDFullscreen && DDCP(s) && DDReserved(frame,s)) {
         frame.origin.x=0.0;
         frame.size.width=s.bounds.size.width;
     }
@@ -171,7 +170,7 @@ static UIEdgeInsets DDCarPlayInsets(UIEdgeInsets original) {
 %hook CPSNavigationBar
 - (void)setFrame:(CGRect)frame {
     UIScreen *s=((UIView *)self).window.screen;
-    if (DDCP(s) && DDReserved(frame,s)) {
+    if (DDFullscreen && DDCP(s) && DDReserved(frame,s)) {
         frame.origin.x=0.0;
         frame.size.width=s.bounds.size.width;
     }
