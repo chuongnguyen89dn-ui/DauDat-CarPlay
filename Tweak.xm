@@ -1,6 +1,8 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <notify.h>
+#import "DauDatConfig.h"
+#import "DauDatDoctor.h"
 
 @interface DBStatusBarWindow : UIWindow @end
 @interface DBAnimationView : UIView @end
@@ -55,6 +57,36 @@ static UIView *DDDashboardContentView(void) {
     }
     return found;
 }
+static NSString *DDGeometryDetail(void) {
+    UIWindow *bar=DDStatusBarWindow();
+    UIView *content=DDDashboardContentView();
+    UIWindow *host=content.window;
+    UIView *root=host.rootViewController.view;
+    return [NSString stringWithFormat:@"fullscreen=%d barClass=%@ barFrame=%@ barBounds=%@ barHidden=%d hostClass=%@ hostFrame=%@ hostBounds=%@ rootClass=%@ rootFrame=%@ rootBounds=%@ contentClass=%@ contentFrame=%@ contentBounds=%@ superClass=%@ superFrame=%@ superBounds=%@",
+        DDFullscreen,
+        bar?NSStringFromClass(bar.class):@"nil",
+        bar?NSStringFromCGRect(bar.frame):@"nil",
+        bar?NSStringFromCGRect(bar.bounds):@"nil",
+        bar?bar.hidden:-1,
+        host?NSStringFromClass(host.class):@"nil",
+        host?NSStringFromCGRect(host.frame):@"nil",
+        host?NSStringFromCGRect(host.bounds):@"nil",
+        root?NSStringFromClass(root.class):@"nil",
+        root?NSStringFromCGRect(root.frame):@"nil",
+        root?NSStringFromCGRect(root.bounds):@"nil",
+        content?NSStringFromClass(content.class):@"nil",
+        content?NSStringFromCGRect(content.frame):@"nil",
+        content?NSStringFromCGRect(content.bounds):@"nil",
+        content.superview?NSStringFromClass(content.superview.class):@"nil",
+        content.superview?NSStringFromCGRect(content.superview.frame):@"nil",
+        content.superview?NSStringFromCGRect(content.superview.bounds):@"nil"];
+}
+static void DDTrace(NSString *event) {
+    NSString *detail=DDGeometryDetail();
+    DDDoctorLogEvent(event,detail);
+    NSLog(@"[DauDat] %@ | %@",event,detail);
+    DDDoctorWrite(NO,DDFullscreen,DDStatusBarWindow());
+}
 static void DDInvokeBool(id obj, NSString *name, BOOL value) {
     SEL sel=NSSelectorFromString(name);
     if (!obj || ![obj respondsToSelector:sel]) return;
@@ -83,59 +115,50 @@ static void DDForceDashboardGeometry(void) {
     if (DDFullscreen) {
         CGRect full=content.superview.bounds;
         if (!CGRectIsEmpty(full)) content.frame=full;
-    } else if (DDHaveDashboardFrame) content.frame=DDNormalDashboardFrame;
-    [content setNeedsLayout];
-}
-static void DDTrace(NSString *event) {
-    UIWindow *bar=DDStatusBarWindow(); UIView *content=DDDashboardContentView();
-    NSString *line=[NSString stringWithFormat:@"%@ fullscreen=%d bar=%@ barHidden=%d content=%@ super=%@ process=%@\n",
-                    event,DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?bar.hidden:-1,
-                    content?NSStringFromCGRect(content.frame):@"nil",
-                    content.superview?NSStringFromCGRect(content.superview.bounds):@"nil",
-                    NSProcessInfo.processInfo.processName];
-    CFPropertyListRef old=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
-    NSString *prev=(old && CFGetTypeID(old)==CFStringGetTypeID())?[(__bridge NSString *)old copy]:@"";
-    NSString *all=[prev stringByAppendingString:line]; if (old) CFRelease(old);
-    CFPreferencesSetAppValue(CFSTR("payload.DDTRACE"),(__bridge CFStringRef)all,CFSTR("com.chuong.daudat.diagnostic"));
-    CFPreferencesAppSynchronize(CFSTR("com.chuong.daudat.diagnostic"));
-    NSLog(@"[DauDat] %@",line);
-    NSData *data=[line dataUsingEncoding:NSUTF8StringEncoding];
-    NSString *path=@"/var/mobile/Documents/DauDat-CarPlay.log";
-    NSFileManager *fm=NSFileManager.defaultManager;
-    if (![fm fileExistsAtPath:path]) [data writeToFile:path atomically:YES];
-    else {
-        NSFileHandle *h=[NSFileHandle fileHandleForWritingAtPath:path];
-        [h seekToEndOfFile]; [h writeData:data]; [h closeFile];
+    } else if (DDHaveDashboardFrame) {
+        content.frame=DDNormalDashboardFrame;
     }
+    [content setNeedsLayout];
 }
 static void DDInstallButton(UIWindow *bar);
 static void DDSetFullscreen(BOOL enabled) {
     if (enabled==DDFullscreen) return;
     UIWindow *bar=DDStatusBarWindow(); UIView *content=DDDashboardContentView();
     if (!bar || !content || !content.superview) { DDTrace(@"FULLSCREEN_ABORT_MISSING_HOST"); return; }
-    DDTrace(enabled?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
+    DDTrace(enabled?@"FULLSCREEN_ENTER_BEFORE":@"FULLSCREEN_EXIT_BEFORE");
     if (enabled) {
-        DDNormalDashboardFrame=content.frame; DDHaveDashboardFrame=YES;\n        DDNormalHostWindowFrame=content.window.frame; DDHaveHostWindowFrame=YES; DDFullscreen=YES;
+        DDNormalDashboardFrame=content.frame; DDHaveDashboardFrame=YES; DDFullscreen=YES;
         DDSetNativeChromeHidden(YES); bar.hidden=YES; DDForceDashboardGeometry();
     } else {
         DDFullscreen=NO; bar.hidden=NO; DDSetNativeChromeHidden(NO);
         DDForceDashboardGeometry(); DDInstallButton(bar);
     }
-    dispatch_async(dispatch_get_main_queue(), ^{ DDForceDashboardGeometry(); });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(120*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDForceDashboardGeometry(); });
-    DDTrace(enabled?@"FULLSCREEN_ENTER_END":@"FULLSCREEN_EXIT_END");
+    DDTrace(enabled?@"FULLSCREEN_ENTER_IMMEDIATE":@"FULLSCREEN_EXIT_IMMEDIATE");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        DDForceDashboardGeometry();
+        DDTrace(enabled?@"FULLSCREEN_ENTER_NEXT_RUNLOOP":@"FULLSCREEN_EXIT_NEXT_RUNLOOP");
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(120*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{
+        DDForceDashboardGeometry();
+        DDTrace(enabled?@"FULLSCREEN_ENTER_120MS":@"FULLSCREEN_EXIT_120MS");
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(500*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{
+        DDTrace(enabled?@"FULLSCREEN_ENTER_500MS":@"FULLSCREEN_EXIT_500MS");
+    });
 }
 static void DDInstallButton(UIWindow *bar) {
     if (!bar || ![NSStringFromClass(bar.class) containsString:@"DBStatusBarWindow"]) return;
     UIButton *b=(UIButton *)[bar viewWithTag:DDFullButtonTag];
     if (!b) {
-        b=[UIButton buttonWithType:UIButtonTypeSystem]; b.tag=DDFullButtonTag;
-        CGFloat side=34.0;
-        b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),4.0,side,side);
-        b.autoresizingMask=UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;
+        b=[UIButton buttonWithType:UIButtonTypeCustom]; b.tag=DDFullButtonTag;
+        CGFloat side=38.0;
+        CGFloat y=MAX(4.0,bar.bounds.size.height-side-8.0);
+        b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);
+        b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;
+        b.backgroundColor=UIColor.clearColor; b.opaque=NO;
         UIImageSymbolConfiguration *cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
         [b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];
-        b.tintColor=UIColor.whiteColor; b.imageView.backgroundColor=UIColor.clearColor; b.accessibilityLabel=@"Fullscreen";
+        b.tintColor=UIColor.whiteColor; b.accessibilityLabel=@"Fullscreen";
         [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ (void)a; DDSetFullscreen(YES); }]
           forControlEvents:UIControlEventTouchUpInside];
         [bar addSubview:b]; DDTrace(@"FULLSCREEN_BUTTON_CREATED");
@@ -143,27 +166,15 @@ static void DDInstallButton(UIWindow *bar) {
     b.hidden=DDFullscreen;
 }
 %hook DBStatusBarWindow
-- (void)didAddSubview:(UIView *)view {
-    %orig;
-    (void)view;
-    DDInstallButton((UIWindow *)self);
-}
-- (void)didMoveToScreen:(UIScreen *)screen {
-    %orig;
-    if (screen) DDInstallButton((UIWindow *)self);
-}
-- (void)layoutSubviews {
-    %orig;
-    if (!DDFullscreen) DDInstallButton((UIWindow *)self);
-}
+- (void)didAddSubview:(UIView *)view { %orig; (void)view; DDInstallButton((UIWindow *)self); }
+- (void)didMoveToScreen:(UIScreen *)screen { %orig; if (screen) DDInstallButton((UIWindow *)self); }
+- (void)layoutSubviews { %orig; if (!DDFullscreen) DDInstallButton((UIWindow *)self); }
 %end
 
 %hook DBAnimationView
-- (void)layoutSubviews {
-    %orig;
-    if (DDFullscreen) DDForceDashboardGeometry();
-}
+- (void)layoutSubviews { %orig; if (DDFullscreen) DDForceDashboardGeometry(); }
 %end
+
 %hook UIWindow
 - (void)sendEvent:(UIEvent *)event {
     if (DDFullscreen && DDIsCarPlayScreen(self.screen) && event.type==UIEventTypeTouches) {
@@ -176,11 +187,13 @@ static void DDInstallButton(UIWindow *bar) {
     %orig;
 }
 %end
+
 %ctor {
     %init;
     NSString *process=NSProcessInfo.processInfo.processName ?: @"";
     if ([process isEqualToString:@"CarPlay"] || [process isEqualToString:@"CarPlayApp"]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1*NSEC_PER_SEC)),dispatch_get_main_queue(),^{
+            DDTrace(@"CARPLAY_ATTACH");
             UIWindow *bar=DDStatusBarWindow();
             if (bar) DDInstallButton(bar); else DDTrace(@"FULLSCREEN_BUTTON_NO_STATUSBAR");
         });
