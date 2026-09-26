@@ -41,7 +41,8 @@ static NSString *DDSnapshot(void){
     return [NSString stringWithFormat:@"fullscreen=%d bar=%@/%@ hidden=%d button=%@/%@ host=%@/%@ root=%@/%@ content=%@/%@ super=%@/%@",DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?NSStringFromCGRect(bar.bounds):@"nil",bar?bar.hidden:-1,b?@"YES":@"NO",b?NSStringFromCGRect(b.frame):@"nil",h?NSStringFromCGRect(h.frame):@"nil",h?NSStringFromCGRect(h.bounds):@"nil",r?NSStringFromCGRect(r.frame):@"nil",r?NSStringFromCGRect(r.bounds):@"nil",c?NSStringFromCGRect(c.frame):@"nil",c?NSStringFromCGRect(c.bounds):@"nil",c.superview?NSStringFromCGRect(c.superview.frame):@"nil",c.superview?NSStringFromCGRect(c.superview.bounds):@"nil"];
 }
 static void DDTrace(NSString*event){
-    NSString*line=[NSString stringWithFormat:@"%@ | %@ | %@\n",NSDate.date,event,DDSnapshot()];
+    NSString*line=[NSString stringWithFormat:@"%@ | %@ | %@
+",NSDate.date,event,DDSnapshot()];
     CFPropertyListRef old=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
     NSString*prev=(old&&CFGetTypeID(old)==CFStringGetTypeID())?[(__bridge NSString*)old copy]:@"";
     if(old)CFRelease(old);
@@ -67,12 +68,24 @@ static void DDInstallButton(UIWindow*bar){
     if(!b){b=[UIButton buttonWithType:UIButtonTypeCustom];b.tag=DDFullButtonTag;CGFloat side=38.0,y=MAX(4.0,bar.bounds.size.height-side-8.0);b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);b.backgroundColor=UIColor.clearColor;b.opaque=NO;b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;UIImageSymbolConfiguration*cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];[b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];b.tintColor=UIColor.whiteColor;[b addAction:[UIAction actionWithHandler:^(__kindof UIAction*a){(void)a;DDSetFullscreen(YES);}] forControlEvents:UIControlEventTouchUpInside];[bar addSubview:b];DDTrace(@"FULLSCREEN_BUTTON_CREATED");}b.hidden=DDFullscreen;
 }
 %hook DBStatusBarWindow
--(void)didAddSubview:(UIView*)v {\n    %orig(v);\n    DDInstallButton((UIWindow*)self);\n}
--(void)didMoveToScreen:(UIScreen*)s {\n    %orig(s);\n    if(s) DDInstallButton((UIWindow*)self);\n}
--(void)layoutSubviews {\n    %orig;\n    if(!DDFullscreen) DDInstallButton((UIWindow*)self);\n}
+-(void)didAddSubview:(UIView*)v {
+    %orig(v);
+    DDInstallButton((UIWindow*)self);
+}
+-(void)didMoveToScreen:(UIScreen*)s {
+    %orig(s);
+    if(s) DDInstallButton((UIWindow*)self);
+}
+-(void)layoutSubviews {
+    %orig;
+    if(!DDFullscreen) DDInstallButton((UIWindow*)self);
+}
 %end
 %hook DBAnimationView
--(void)layoutSubviews {\n    %orig;\n    if(DDFullscreen) DDForceDashboardGeometry();\n}
+-(void)layoutSubviews {
+    %orig;
+    if(DDFullscreen) DDForceDashboardGeometry();
+}
 %end
 %hook UIWindow
 -(void)sendEvent:(UIEvent*)e{if(DDFullscreen&&DDIsCarPlayScreen(self.screen)&&e.type==UIEventTypeTouches){for(UITouch*t in e.allTouches){if(t.phase!=UITouchPhaseEnded)continue;CGPoint p=[t locationInView:self];if(p.x<=44&&p.y<=44){DDTrace(@"FULLSCREEN_RESTORE_HITZONE");DDSetFullscreen(NO);return;}}}%orig;}
