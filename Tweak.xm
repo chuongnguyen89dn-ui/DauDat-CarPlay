@@ -67,12 +67,12 @@ static void DDInstallButton(UIWindow*bar){
     if(!b){b=[UIButton buttonWithType:UIButtonTypeCustom];b.tag=DDFullButtonTag;CGFloat side=38.0,y=MAX(4.0,bar.bounds.size.height-side-8.0);b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);b.backgroundColor=UIColor.clearColor;b.opaque=NO;b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;UIImageSymbolConfiguration*cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];[b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];b.tintColor=UIColor.whiteColor;[b addAction:[UIAction actionWithHandler:^(__kindof UIAction*a){(void)a;DDSetFullscreen(YES);}] forControlEvents:UIControlEventTouchUpInside];[bar addSubview:b];DDTrace(@"FULLSCREEN_BUTTON_CREATED");}b.hidden=DDFullscreen;
 }
 %hook DBStatusBarWindow
--(void)didAddSubview:(UIView*)v{%orig;(void)v;DDInstallButton((UIWindow*)self);}
--(void)didMoveToScreen:(UIScreen*)s{%orig;if(s)DDInstallButton((UIWindow*)self);}
--(void)layoutSubviews{%orig;if(!DDFullscreen)DDInstallButton((UIWindow*)self);}
+-(void)didAddSubview:(UIView*)v {\n    %orig(v);\n    DDInstallButton((UIWindow*)self);\n}
+-(void)didMoveToScreen:(UIScreen*)s {\n    %orig(s);\n    if(s) DDInstallButton((UIWindow*)self);\n}
+-(void)layoutSubviews {\n    %orig;\n    if(!DDFullscreen) DDInstallButton((UIWindow*)self);\n}
 %end
 %hook DBAnimationView
--(void)layoutSubviews{%orig;if(DDFullscreen)DDForceDashboardGeometry();}
+-(void)layoutSubviews {\n    %orig;\n    if(DDFullscreen) DDForceDashboardGeometry();\n}
 %end
 %hook UIWindow
 -(void)sendEvent:(UIEvent*)e{if(DDFullscreen&&DDIsCarPlayScreen(self.screen)&&e.type==UIEventTypeTouches){for(UITouch*t in e.allTouches){if(t.phase!=UITouchPhaseEnded)continue;CGPoint p=[t locationInView:self];if(p.x<=44&&p.y<=44){DDTrace(@"FULLSCREEN_RESTORE_HITZONE");DDSetFullscreen(NO);return;}}}%orig;}
