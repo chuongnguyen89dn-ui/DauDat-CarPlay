@@ -99,6 +99,14 @@ static void DDTrace(NSString *event) {
     CFPreferencesSetAppValue(CFSTR("payload.DDTRACE"),(__bridge CFStringRef)all,CFSTR("com.chuong.daudat.diagnostic"));
     CFPreferencesAppSynchronize(CFSTR("com.chuong.daudat.diagnostic"));
     NSLog(@"[DauDat] %@",line);
+    NSData *data=[line dataUsingEncoding:NSUTF8StringEncoding];
+    NSString *path=@"/var/mobile/Documents/DauDat-CarPlay.log";
+    NSFileManager *fm=NSFileManager.defaultManager;
+    if (![fm fileExistsAtPath:path]) [data writeToFile:path atomically:YES];
+    else {
+        NSFileHandle *h=[NSFileHandle fileHandleForWritingAtPath:path];
+        [h seekToEndOfFile]; [h writeData:data]; [h closeFile];
+    }
 }
 static void DDInstallButton(UIWindow *bar);
 static void DDSetFullscreen(BOOL enabled) {
