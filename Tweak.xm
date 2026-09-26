@@ -82,8 +82,8 @@ static void DDRefreshSceneFrames(void) {
         if ([role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location==NSNotFound) continue;
         for (UIWindow *w in ws.windows) {
             DDWalkVC(w.rootViewController, ^(UIViewController *vc){
-                DDInvokeNoArg(vc, @"updateAllSceneFramesImmediately:");
-                DDInvokeNoArg(vc, @"updateSceneFrameImmediately:");
+                DDInvokeNoArg(vc, @"updateAllSceneFramesImmediately");
+                DDInvokeNoArg(vc, @"updateSceneFrameImmediately");
                 [vc.view setNeedsLayout];
                 [vc.view layoutIfNeeded];
             });
