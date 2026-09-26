@@ -1,8 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <notify.h>
-#import "DauDatConfig.h"
-#import "DauDatDoctor.h"
 
 @interface DBStatusBarWindow : UIWindow @end
 @interface DBAnimationView : UIView @end
