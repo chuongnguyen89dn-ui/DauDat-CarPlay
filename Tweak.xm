@@ -23,7 +23,7 @@ static BOOL DDReserved(CGRect f) {
 %hook UIWindow
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets original = %orig;
-    if (DDCP(self.screen)) return UIEdgeInsetsZero;
+    if (DDCP(self.screen)) return DDCarPlayInsets(original);
     return original;
 }
 %end
@@ -31,7 +31,7 @@ static BOOL DDReserved(CGRect f) {
 %hook UIView
 - (UIEdgeInsets)safeAreaInsets {
     UIEdgeInsets original = %orig;
-    if (DDCP(self.window.screen)) return UIEdgeInsetsZero;
+    if (DDCP(self.window.screen)) return DDCarPlayInsets(original);
     return original;
 }
 
@@ -39,15 +39,15 @@ static BOOL DDReserved(CGRect f) {
     %orig;
     UIWindow *w = self.window;
     if (!w || !DDCP(w.screen)) return;
-    if ([NSStringFromClass(self.class) isEqualToString:@"DBStatusBarView"]) return;
+    NSString *cls = NSStringFromClass(self.class);
+    if ([cls isEqualToString:@"DBStatusBarView"]) return;
 
     CGRect f = self.frame;
-    if (DDReserved(f)) {
+    if (DDReserved(f, w.screen)) {
         f.origin.x = 0.0;
-        f.size.width = DDW;
-        f.size.height = DDH;
+        f.size.width = w.screen.bounds.size.width;
         self.frame = f;
-        self.autoresizingMask |= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        self.autoresizingMask |= UIViewAutoresizingFlexibleWidth;
     }
 }
 %end
@@ -57,6 +57,47 @@ static BOOL DDReserved(CGRect f) {
     if (DDCP(((UIWindow *)self).screen)) {
         CGFloat width = frame.size.width > 1.0 ? frame.size.width : DDSide;
         frame.origin.x = -fabs(width);
+    }
+    %orig(frame);
+}
+- (void)didMoveToScreen:(UIScreen *)screen {
+    %orig;
+    if (DDCP(screen)) {
+        CGRect f=((UIWindow *)self).frame;
+        f.origin.x=-fabs(f.size.width > 1.0 ? f.size.width : DDSide);
+        ((UIWindow *)self).frame=f;
+    }
+}
+%end
+
+%hook DBNotificationWindow
+- (void)setFrame:(CGRect)frame {
+    UIScreen *s=((UIWindow *)self).screen;
+    if (DDCP(s) && DDReserved(frame,s)) {
+        frame.origin.x=0.0;
+        frame.size.width=s.bounds.size.width;
+    }
+    %orig(frame);
+}
+%end
+
+%hook DBAnimationView
+- (void)setFrame:(CGRect)frame {
+    UIScreen *s=((UIView *)self).window.screen;
+    if (DDCP(s) && DDReserved(frame,s)) {
+        frame.origin.x=0.0;
+        frame.size.width=s.bounds.size.width;
+    }
+    %orig(frame);
+}
+%end
+
+%hook CPSNavigationBar
+- (void)setFrame:(CGRect)frame {
+    UIScreen *s=((UIView *)self).window.screen;
+    if (DDCP(s) && DDReserved(frame,s)) {
+        frame.origin.x=0.0;
+        frame.size.width=s.bounds.size.width;
     }
     %orig(frame);
 }
