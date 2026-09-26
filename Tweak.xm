@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <math.h>
+#import <notify.h>
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
@@ -109,15 +110,57 @@ static void DDWriteProcessDiagnostic(void) {
     [report appendFormat:@"\n=== PROCESS ===\nname=%@ pid=%d args=%@\n", process, getpid(), NSProcessInfo.processInfo.arguments];
 
     NSString *safeName = [process stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
-    NSString *path = [@"/var/mobile/Documents" stringByAppendingPathComponent:
-                      [NSString stringWithFormat:@"DauDat-%@.txt", safeName]];
-    [report writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
-    DDDoctorLogEvent(@"PROCESS_DIAGNOSTIC", path);
+    NSString *fileName = [NSString stringWithFormat:@"DauDat-%@.txt", safeName];
+
+    // CarPlay processes may be sandboxed. Write to their own writable tmp first,
+    // then publish the complete report through Darwin notification + shared prefs.
+    NSString *tmpPath = [NSTemporaryDirectory() stringByAppendingPathComponent:fileName];
+    NSError *tmpError = nil;
+    BOOL tmpOK = [report writeToFile:tmpPath atomically:YES encoding:NSUTF8StringEncoding error:&tmpError];
+
+    CFPreferencesSetAppValue((__bridge CFStringRef)[@"payload." stringByAppendingString:safeName],
+                             (__bridge CFStringRef)report,
+                             CFSTR("com.chuong.daudat.diagnostic"));
+    CFPreferencesAppSynchronize(CFSTR("com.chuong.daudat.diagnostic"));
+    notify_post("com.chuong.daudat.diagnostic.ready");
+
+    DDDoctorLogEvent(@"PROCESS_DIAGNOSTIC",
+                     [NSString stringWithFormat:@"tmp=%d path=%@ err=%@", tmpOK, tmpPath, tmpError]);
+}
+
+static void DDExportPendingReports(void) {
+    NSString *domain = @"com.chuong.daudat.diagnostic";
+    for (NSString *name in @[@"CarPlay", @"CarPlayTemplateUIHost"]) {
+        NSString *key = [@"payload." stringByAppendingString:name];
+        CFPropertyListRef value = CFPreferencesCopyAppValue((__bridge CFStringRef)key, (__bridge CFStringRef)domain);
+        if (value && CFGetTypeID(value) == CFStringGetTypeID()) {
+            NSString *payload = CFBridgingRelease(value);
+            NSString *path = [@"/var/mobile/Documents" stringByAppendingPathComponent:
+                              [NSString stringWithFormat:@"DauDat-%@.txt", name]];
+            NSError *error=nil;
+            [payload writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error];
+            if (!error) {
+                CFPreferencesSetAppValue((__bridge CFStringRef)key, NULL, (__bridge CFStringRef)domain);
+                CFPreferencesAppSynchronize((__bridge CFStringRef)domain);
+            }
+        } else if (value) CFRelease(value);
+    }
+}
+
+static void DDDiagnosticReady(int token) {
+    dispatch_async(dispatch_get_main_queue(), ^{ DDExportPendingReports(); });
 }
 
 %ctor {
     %init;
     NSString *process = NSProcessInfo.processInfo.processName ?: @"";
+    if ([process isEqualToString:@"SpringBoard"]) {
+        int token=0;
+        notify_register_dispatch("com.chuong.daudat.diagnostic.ready", &token,
+                                 dispatch_get_main_queue(), ^(int t){ DDDiagnosticReady(t); });
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{ DDExportPendingReports(); });
+    }
     if ([process isEqualToString:@"CarPlay"] || [process isEqualToString:@"CarPlayTemplateUIHost"]) {
         DDDoctorLogEvent(@"INJECT_PROCESS_LOGGER", process);
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
