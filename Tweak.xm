@@ -73,6 +73,7 @@ static UIWindow *DDDiagnosticStatusBarWindow(void) {
 }
 
 static void DDWriteProcessDiagnostic(void) {
+    (void)DDDoctorWrite;
     NSString *process = NSProcessInfo.processInfo.processName ?: @"Unknown";
     if (![process isEqualToString:@"CarPlay"] && ![process isEqualToString:@"CarPlayTemplateUIHost"]) return;
 
