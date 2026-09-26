@@ -80,6 +80,33 @@ static void DDWriteProcessDiagnostic(void) {
     NSMutableString *report = [[DDDoctorSnapshot(YES, bar) mutableCopy] ?: [NSMutableString string] mutableCopy];
     [report appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n", DDDoctorGeometryAssessment()];
 
+    [report appendString:@"\n=== COMPLETE WINDOW TREE ===\n"];
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+        UIWindowScene *ws=(UIWindowScene *)scene;
+        [report appendFormat:@"SCENE role=%@ screen=%@ native=%@ scale=%.3f windows=%lu\n",
+         scene.session.role, NSStringFromCGRect(ws.screen.bounds), NSStringFromCGRect(ws.screen.nativeBounds),
+         ws.screen.scale, (unsigned long)ws.windows.count];
+        for (UIWindow *w in ws.windows) {
+            [report appendFormat:@"WINDOW class=%@ frame=%@ bounds=%@ safe=%@ hidden=%d level=%.1f root=%@\n",
+             NSStringFromClass(w.class), NSStringFromCGRect(w.frame), NSStringFromCGRect(w.bounds),
+             NSStringFromUIEdgeInsets(w.safeAreaInsets), w.hidden, w.windowLevel,
+             w.rootViewController ? NSStringFromClass(w.rootViewController.class) : @"(null)"];
+            NSMutableArray *q=[NSMutableArray array];
+            if (w.rootViewController.view) [q addObject:@[w.rootViewController.view,@0]];
+            while (q.count) {
+                NSArray *it=q.firstObject; [q removeObjectAtIndex:0];
+                UIView *v=it[0]; NSInteger d=[it[1] integerValue];
+                [report appendFormat:@"depth=%ld VIEW class=%@ frame=%@ bounds=%@ safe=%@ hidden=%d alpha=%.3f transform=%@ subviews=%lu\n",
+                 (long)d, NSStringFromClass(v.class), NSStringFromCGRect(v.frame), NSStringFromCGRect(v.bounds),
+                 NSStringFromUIEdgeInsets(v.safeAreaInsets), v.hidden, v.alpha,
+                 NSStringFromCGAffineTransform(v.transform), (unsigned long)v.subviews.count];
+                if (d < 16) for (UIView *child in v.subviews) [q addObject:@[child,@(d+1)]];
+            }
+        }
+    }
+    [report appendFormat:@"\n=== PROCESS ===\nname=%@ pid=%d args=%@\n", process, getpid(), NSProcessInfo.processInfo.arguments];
+
     NSString *safeName = [process stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
     NSString *path = [@"/var/mobile/Documents" stringByAppendingPathComponent:
                       [NSString stringWithFormat:@"DauDat-%@.txt", safeName]];
