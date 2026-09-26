@@ -87,6 +87,19 @@ static void DDInstallButton(UIWindow*bar){
 }
 %end
 %hook UIWindow
--(void)sendEvent:(UIEvent*)e{if(DDFullscreen&&DDIsCarPlayScreen(self.screen)&&e.type==UIEventTypeTouches){for(UITouch*t in e.allTouches){if(t.phase!=UITouchPhaseEnded)continue;CGPoint p=[t locationInView:self];if(p.x<=44&&p.y<=44){DDTrace(@"FULLSCREEN_RESTORE_HITZONE");DDSetFullscreen(NO);return;}}}%orig;}
+-(void)sendEvent:(UIEvent*)e {
+    if(DDFullscreen && DDIsCarPlayScreen(self.screen) && e.type==UIEventTypeTouches) {
+        for(UITouch*t in e.allTouches) {
+            if(t.phase!=UITouchPhaseEnded) continue;
+            CGPoint p=[t locationInView:self];
+            if(p.x<=44 && p.y<=44) {
+                DDTrace(@"FULLSCREEN_RESTORE_HITZONE");
+                DDSetFullscreen(NO);
+                return;
+            }
+        }
+    }
+    %orig(e);
+}
 %end
 %ctor{ %init; NSString*p=NSProcessInfo.processInfo.processName?:@"";if([p isEqualToString:@"CarPlay"]||[p isEqualToString:@"CarPlayApp"])dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1*NSEC_PER_SEC)),dispatch_get_main_queue(),^{UIWindow*b=DDStatusBarWindow();if(b)DDInstallButton(b);else DDTrace(@"FULLSCREEN_BUTTON_NO_STATUSBAR");}); }
