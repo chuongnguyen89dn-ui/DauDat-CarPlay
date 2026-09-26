@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <notify.h>
+#import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
 @interface DBStatusBarWindow : UIWindow @end
@@ -136,12 +137,26 @@ static void DDInstallButton(UIWindow *bar) {
     b.hidden=DDFullscreen;
 }
 %hook DBStatusBarWindow
-- (void)didAddSubview:(UIView *)view { %orig; (void)view; DDInstallButton((UIWindow *)self); }
-- (void)didMoveToScreen:(UIScreen *)screen { %orig; if (screen) DDInstallButton((UIWindow *)self); }
-- (void)layoutSubviews { %orig; if (!DDFullscreen) DDInstallButton((UIWindow *)self); }
+- (void)didAddSubview:(UIView *)view {
+    %orig;
+    (void)view;
+    DDInstallButton((UIWindow *)self);
+}
+- (void)didMoveToScreen:(UIScreen *)screen {
+    %orig;
+    if (screen) DDInstallButton((UIWindow *)self);
+}
+- (void)layoutSubviews {
+    %orig;
+    if (!DDFullscreen) DDInstallButton((UIWindow *)self);
+}
 %end
+
 %hook DBAnimationView
-- (void)layoutSubviews { %orig; if (DDFullscreen) DDForceDashboardGeometry(); }
+- (void)layoutSubviews {
+    %orig;
+    if (DDFullscreen) DDForceDashboardGeometry();
+}
 %end
 %hook UIWindow
 - (void)sendEvent:(UIEvent *)event {
