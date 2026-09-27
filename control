@@ -1,9 +1,9 @@
-Package: com.chuong.duodashunifiedfullscreen
-Name: DuoDash Unified Fullscreen + DauDat54
-Version: 1.1.0
+Package: com.chuong.duodashairawoneui
+Name: DuoDash + Airaw One UI Integration
+Version: 2.0.0
 Architecture: iphoneos-arm64
-Description: Unified 427x240 correction with non-fullscreen DauDat #54 components
+Description: Minimal integration shim: preserves original DuoDash UI and Airaw fullscreen, suppresses only Airaw hosted-app menu/grabber.
 Maintainer: chuongnguyen89dn-ui
 Author: chuongnguyen89dn-ui
 Section: Tweaks
-Depends: firmware (>= 15.0), preferenceloader
+Depends: firmware (>= 15.0)
