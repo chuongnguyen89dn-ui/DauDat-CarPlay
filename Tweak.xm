@@ -219,15 +219,6 @@ static void DDSetFullscreen(BOOL enabled) {
     %orig;
     if(DDFullscreen) DDExpandHostView(self);
 }
-- (void)layoutSubviews {
-    %orig;
-    NSString *cn=NSStringFromClass(self.class);
-    if(([cn containsString:@"Divider"]||[cn containsString:@"Handle"]) && DDViewIsCarPlay(self)) {
-        static CFTimeInterval last=0;
-        CFTimeInterval now=CACurrentMediaTime();
-        if(now-last>0.20){ last=now; DDScheduleDividerDiagnostics(); }
-    }
-}
 %end
 
 %hook DBStatusBarWindow
