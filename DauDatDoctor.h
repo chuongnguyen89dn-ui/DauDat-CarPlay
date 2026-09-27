@@ -114,7 +114,7 @@ static NSString *DDDoctorGeometryAssessment(void) {
     return issues.count ? [issues componentsJoinedByString:@"\n"] : @"NO_OBVIOUS_45PT_RESERVATION";
 }
 
-static NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusBar) {
+static __attribute__((unused)) NSString *DDDoctorWrite(BOOL baseline, BOOL fullscreen, UIWindow *statusBar) {
     NSMutableString *snap=[DDDoctorSnapshot(fullscreen,statusBar) mutableCopy];
     [snap appendFormat:@"\n=== GEOMETRY ASSESSMENT ===\n%@\n",DDDoctorGeometryAssessment()];
     NSString *events=[NSString stringWithContentsOfFile:DDDoctorEventPath() encoding:NSUTF8StringEncoding error:nil];
