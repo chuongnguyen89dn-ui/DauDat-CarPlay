@@ -118,17 +118,34 @@ static void DDInstallExitButton(void) {
     [target bringSubviewToFront:b];
 }
 
-static void DDApplyFullscreenNow(void) {
+static void DDPostChromeHidden(BOOL hidden) {
+    NSDictionary *info=@{ @"nativeChromeHidden":@(hidden), @"fullscreenButtonHidden":@(hidden) };
+    [[NSDistributedNotificationCenter defaultCenter] postNotificationName:DDAirawChromeNotification object:nil userInfo:info deliverImmediately:YES];
+}
+
+static void DDApplySceneFullscreen(BOOL enabled) {
     for(UIWindow *w in DDCarPlayWindows()) {
-        if([NSStringFromClass(w.class) containsString:@"DBStatusBarWindow"]) {
-            CGRect f=w.frame;
-            if(DDFullscreen) {
-                f.origin.x=(f.size.width>1.0)?-f.size.width:-45.0;
-                w.frame=f;
-            }
-            continue;
-        }
+        UIWindowScene *scene=w.windowScene;
+        if(!scene) continue;
+        SEL sel=NSSelectorFromString(@"updateSettingsWithBlock:");
+        if(![scene respondsToSelector:sel]) continue;
+        void (^block)(id)=^(id settings){
+            SEL setInsets=NSSelectorFromString(@"setSafeAreaInsetsPortrait:");
+            if(![settings respondsToSelector:setInsets]) return;
+            UIEdgeInsets insets=enabled?UIEdgeInsetsZero:UIEdgeInsetsMake(0,45,0,0);
+            NSMethodSignature *ms=[settings methodSignatureForSelector:setInsets];
+            NSInvocation *iv=[NSInvocation invocationWithMethodSignature:ms];
+            iv.target=settings; iv.selector=setInsets; [iv setArgument:&insets atIndex:2]; [iv invoke];
+        };
+        NSMethodSignature *ms=[scene methodSignatureForSelector:sel];
+        NSInvocation *iv=[NSInvocation invocationWithMethodSignature:ms];
+        iv.target=scene; iv.selector=sel; [iv setArgument:&block atIndex:2]; [iv invoke];
     }
+}
+
+static void DDApplyFullscreenNow(void) {
+    DDPostChromeHidden(YES);
+    DDApplySceneFullscreen(YES);
     if(DDFullscreen) DDInstallExitButton();
 }
 
