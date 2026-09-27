@@ -4,7 +4,7 @@
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
-@interface DBStatusBarWindow : UIWindow @end\n@interface DBDockWindow : UIWindow @end\n\nstatic NSString * const DDAirawChromeNotification = @"jp.airaw.carplay.chrome";
+@interface DBStatusBarWindow : UIWindow @end\n@interface DBDockWindow : UIWindow @end\n\nstatic NSString *DDAirawChromeNotification = @"jp.airaw.carplay.chrome";
 
 static BOOL DDFullscreen = NO;
 static const NSInteger DDEnterTag = 771133;
