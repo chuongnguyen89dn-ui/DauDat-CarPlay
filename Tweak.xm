@@ -57,9 +57,9 @@ static void DDInstallButton(UIWindow*bar);
 static void DDSetFullscreen(BOOL e){
     if(e==DDFullscreen)return;UIWindow*bar=DDStatusBarWindow();UIView*c=DDDashboardContentView();if(!bar||!c||!c.superview){DDTrace(@"FULLSCREEN_ABORT_MISSING_HOST");return;}
     DDTrace(e?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
-    if(e){DDNormalDashboardFrame=c.frame;DDHaveDashboardFrame=YES;DDFullscreen=YES;DDSetNativeChromeHidden(YES);bar.hidden=YES;DDForceDashboardGeometry();}
-    else{DDFullscreen=NO;bar.hidden=NO;DDSetNativeChromeHidden(NO);DDForceDashboardGeometry();DDInstallButton(bar);}
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(120*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{DDForceDashboardGeometry();DDTrace(e?@"FULLSCREEN_ENTER_SETTLED":@"FULLSCREEN_EXIT_SETTLED");});
+    if(e){DDNormalDashboardFrame=c.frame;DDHaveDashboardFrame=YES;DDFullscreen=YES;DDSetNativeChromeHidden(YES);bar.hidden=YES;}
+    else{DDFullscreen=NO;bar.hidden=NO;DDSetNativeChromeHidden(NO);DDInstallButton(bar);}
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(120*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{DDTrace(e?@"FULLSCREEN_ENTER_SETTLED":@"FULLSCREEN_EXIT_SETTLED");});
     DDTrace(e?@"FULLSCREEN_ENTER_END":@"FULLSCREEN_EXIT_END");
 }
 static void DDInstallButton(UIWindow*bar){
@@ -82,12 +82,6 @@ static void DDInstallButton(UIWindow*bar){
 -(void)layoutSubviews {
     %orig;
     if(!DDFullscreen) DDInstallButton((UIWindow*)self);
-}
-%end
-%hook DBAnimationView
--(void)layoutSubviews {
-    %orig;
-    if(DDFullscreen) DDForceDashboardGeometry();
 }
 %end
 %hook UIWindow
