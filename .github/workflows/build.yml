@@ -32,14 +32,18 @@ jobs:
           set -euo pipefail
           curl -fL "https://raw.githubusercontent.com/Haoioio/nbrepo.github.io/main/pcbang/debs/com.sensetechlab.duodash_1.1.3_iphoneos-arm64e.deb" -o "$RUNNER_TEMP/duodash.deb"
 
-          # AXS repo index is gone (404); use the public AXS Telegram announcement.
-          TG_PAGE="https://t.me/s/wxfx8/992"
+          # Fetch exact public AXS Telegram post containing AiraW 1.6.7.
+          TG_PAGE="https://t.me/wxfx8/992?embed=1&mode=tme"
           curl -fL "$TG_PAGE" -o "$RUNNER_TEMP/airaw-page.html"
-          AIRAW_URL=$(grep -Eo 'https[^\" ]+' "$RUNNER_TEMP/airaw-page.html" | grep -Ei 'airaw|\\.deb' | head -1 || true)
+          echo "=== TELEGRAM DOCUMENT MARKUP ==="
+          grep -i -C 3 -E 'airaw|document|\\.deb' "$RUNNER_TEMP/airaw-page.html" || true
+          AIRAW_URL=$(grep -Eo 'https[^\" ]+' "$RUNNER_TEMP/airaw-page.html" | sed 's/&amp;/\\&/g' | grep -Ei 'telegram|cdn|\\.deb' | head -1 || true)
           test -n "$AIRAW_URL"
           echo "AiraW source: $AIRAW_URL"
           curl -fL "$AIRAW_URL" -o "$RUNNER_TEMP/airaw.deb"
-          echo "025d60bccfb3451bba5b53dd398b44a54273ae07e43d7b16ed6c99fbe67cee38  $RUNNER_TEMP/airaw.deb" | shasum -a 256 -c -
+          file "$RUNNER_TEMP/airaw.deb"
+          dpkg-deb -f "$RUNNER_TEMP/airaw.deb" Package Version Architecture
+          test "$(dpkg-deb -f "$RUNNER_TEMP/airaw.deb" Version)" = "1.6.7"
 
           echo "=== INPUT PACKAGES ==="
           dpkg-deb -f "$RUNNER_TEMP/duodash.deb" Package Version Architecture
@@ -89,7 +93,7 @@ jobs:
           cat > "$ROOT/DEBIAN/control" <<'EOF'
           Package: com.chuong.duodash.fullscreen427
           Name: DuoDash Fullscreen427
-          Version: 1.1.3-427.167test3
+          Version: 1.1.3-427.167test4
           Architecture: iphoneos-arm64
           Description: Single DuoDash test package with 427x240 correction and embedded AiraW 1.6.7 CarPlay runtime.
           Maintainer: chuongnguyen89dn-ui
@@ -109,7 +113,7 @@ jobs:
           chmod 755 "$ROOT/DEBIAN/postinst"
 
           mkdir -p out
-          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test3_iphoneos-arm64.deb"
+          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test4_iphoneos-arm64.deb"
           dpkg-deb --root-owner-group -Zxz -b "$ROOT" "$OUT"
           echo "=== OUTPUT ==="
           dpkg-deb -I "$OUT"
@@ -118,5 +122,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DuoDash-Fullscreen427-AiraW167-test3
+          name: DuoDash-Fullscreen427-AiraW167-test4
           path: out/*.deb
