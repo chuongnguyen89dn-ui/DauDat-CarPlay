@@ -1,5 +1,5 @@
 name: Build DuoDash 1.1.3 Fullscreen427 + AiraW 1.6.7
-# trigger: github-repack-run-20260927-1
+# trigger: github-repack-run-20260927-2
 
 on:
   push:
@@ -8,12 +8,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install packaging tools
-        run: brew install dpkg
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev xz-utils
 
       - name: Use uploaded DuoDash 1.1.3 and AiraW 1.6.7
         shell: bash
@@ -62,7 +62,7 @@ jobs:
           cat > "$ROOT/DEBIAN/control" <<'EOF'
           Package: com.chuong.duodash.fullscreen427
           Name: DuoDash Fullscreen427
-          Version: 1.1.3-427.167test4
+          Version: 1.1.3-427.167test5
           Architecture: iphoneos-arm64
           Description: Single DuoDash test package with 427x240 correction and embedded AiraW 1.6.7 CarPlay runtime.
           Maintainer: chuongnguyen89dn-ui
@@ -82,7 +82,7 @@ jobs:
           chmod 755 "$ROOT/DEBIAN/postinst"
 
           mkdir -p out
-          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test4_iphoneos-arm64.deb"
+          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test5_iphoneos-arm64.deb"
           dpkg-deb --root-owner-group -Zxz -b "$ROOT" "$OUT"
           echo "=== OUTPUT ==="
           dpkg-deb -I "$OUT"
@@ -91,5 +91,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DuoDash-Fullscreen427-AiraW167-test4
+          name: DuoDash-Fullscreen427-AiraW167-test5
           path: out/*.deb
