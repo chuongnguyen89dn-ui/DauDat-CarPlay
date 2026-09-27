@@ -4,7 +4,7 @@
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
-@interface DBStatusBarWindow : UIWindow @end
+@interface DBStatusBarWindow : UIWindow @end\n@interface DBDockWindow : UIWindow @end\n\nstatic NSString * const DDAirawChromeNotification = @"jp.airaw.carplay.chrome";
 
 static BOOL DDFullscreen = NO;
 static const NSInteger DDEnterTag = 771133;
@@ -129,7 +129,7 @@ static void DDApplyFullscreenNow(void) {
     if(DDFullscreen) DDInstallExitButton();
 }
 
-static void DDRestoreAll(void) {
+static void DDRestoreAll(void) {\n    DDApplySceneFullscreen(NO);\n    DDPostChromeHidden(NO);
     for(UIWindow *w in DDCarPlayWindows()) {
         UIButton *e=(UIButton *)[w viewWithTag:DDExitTag];
         [e removeFromSuperview];
