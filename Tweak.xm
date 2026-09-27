@@ -184,10 +184,6 @@ static void DDRestoreAll(void) {
     if(bar) DDInstallEnterButton(bar);
 }
 
-static void DDScheduleDividerDiagnostics(void) {
-    DDTrace(@"DIVIDER_STATE");
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(300*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"DIVIDER_STATE_300MS"); });
-}
 static void DDSetFullscreen(BOOL enabled) {
     if(enabled==DDFullscreen) return;
     DDTrace(enabled?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
