@@ -1,105 +1,222 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import <notify.h>
+#import <objc/message.h>
 #import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
 @interface DBStatusBarWindow : UIWindow @end
-@interface DBAnimationView : UIView @end
+@interface DBDockWindow : UIWindow @end
+@interface DBApplicationViewController : UIViewController @end
 
-static BOOL DDFullscreen=NO;
-static CGRect DDNormalDashboardFrame={{0,0},{0,0}};
-static BOOL DDHaveDashboardFrame=NO;
-static const NSInteger DDFullButtonTag=771133;
+static BOOL DDFullscreen = NO;
+static __weak DBApplicationViewController *DDHost = nil;
+static UIEdgeInsets DDSavedInsets = {0,0,0,0};
+static CGRect DDSavedRect = {{0,0},{0,0}};
+static BOOL DDHaveSavedGeometry = NO;
+static const NSInteger DDFullButtonTag = 771133;
+static const NSInteger DDExitButtonTag = 771134;
+static NSString * const DDChromeNotification = @"jp.airaw.carplay.chrome";
 
-static BOOL DDIsCarPlayScreen(UIScreen *screen) {
-    if (!screen) return NO;
-    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-        if (![scene isKindOfClass:UIWindowScene.class]) continue;
-        UIWindowScene *ws=(UIWindowScene *)scene;
-        if (ws.screen!=screen) continue;
-        NSString *role=scene.session.role?:@"";
-        if ([role rangeOfString:@"CarPlay" options:NSCaseInsensitiveSearch].location!=NSNotFound) return YES;
-    }
-    return NO;
+static id DDSceneForHost(id host) {
+    SEL s = NSSelectorFromString(@"scene");
+    if (!host || ![host respondsToSelector:s]) return nil;
+    return ((id(*)(id,SEL))objc_msgSend)(host,s);
 }
-static void DDWalkViews(UIView *v,void(^b)(UIView *)){ if(!v)return; b(v); for(UIView *c in v.subviews)DDWalkViews(c,b); }
-static void DDWalkVC(UIViewController *v,void(^b)(UIViewController *)){ if(!v)return; b(v); for(UIViewController*c in v.childViewControllers)DDWalkVC(c,b); if(v.presentedViewController)DDWalkVC(v.presentedViewController,b); }
-static UIWindow *DDStatusBarWindow(void){
-    for(UIScene*s in UIApplication.sharedApplication.connectedScenes){ if(![s isKindOfClass:UIWindowScene.class])continue; UIWindowScene*ws=(UIWindowScene*)s; if(!DDIsCarPlayScreen(ws.screen))continue; for(UIWindow*w in ws.windows)if([NSStringFromClass(w.class) containsString:@"DBStatusBarWindow"])return w; } return nil;
+
+static void DDUpdateScene(id scene, void (^block)(id)) {
+    SEL s = NSSelectorFromString(@"updateSettingsWithBlock:");
+    if (!scene || ![scene respondsToSelector:s] || !block) return;
+    ((void(*)(id,SEL,id))objc_msgSend)(scene,s,block);
 }
-static UIView *DDDashboardContentView(void){
-    __block UIView*f=nil;
-    for(UIScene*s in UIApplication.sharedApplication.connectedScenes){ if(![s isKindOfClass:UIWindowScene.class])continue; UIWindowScene*ws=(UIWindowScene*)s; if(!DDIsCarPlayScreen(ws.screen))continue; for(UIWindow*w in ws.windows){ if([NSStringFromClass(w.class) containsString:@"DBStatusBarWindow"])continue; DDWalkViews(w.rootViewController.view,^(UIView*v){ if(!f&&[NSStringFromClass(v.class) containsString:@"DBAnimationView"])f=v; }); }} return f;
+
+static UIEdgeInsets DDGetInsets(id settings) {
+    SEL s = NSSelectorFromString(@"safeAreaInsetsPortrait");
+    if (!settings || ![settings respondsToSelector:s]) return UIEdgeInsetsZero;
+    return ((UIEdgeInsets(*)(id,SEL))objc_msgSend)(settings,s);
 }
-static void DDInvokeBool(id o,NSString*n,BOOL x){ SEL s=NSSelectorFromString(n); if(!o||![o respondsToSelector:s])return; NSMethodSignature*g=[o methodSignatureForSelector:s]; if(!g||g.numberOfArguments!=3)return; NSInvocation*i=[NSInvocation invocationWithMethodSignature:g]; i.target=o;i.selector=s;[i setArgument:&x atIndex:2];[i invoke]; }
-static void DDSetNativeChromeHidden(BOOL h){
-    for(UIScene*s in UIApplication.sharedApplication.connectedScenes){ if(![s isKindOfClass:UIWindowScene.class])continue; UIWindowScene*ws=(UIWindowScene*)s;if(!DDIsCarPlayScreen(ws.screen))continue;for(UIWindow*w in ws.windows)DDWalkVC(w.rootViewController,^(UIViewController*v){NSString*c=NSStringFromClass(v.class);if([c containsString:@"DBApplicationViewController"]||[c containsString:@"DBDashboard"]){DDInvokeBool(v,@"setDefaultAppChromeHidden:",h);DDInvokeBool(v,@"setNativeChromeHidden:",h);}});}
+
+static void DDSetInsets(id settings, UIEdgeInsets insets) {
+    SEL s = NSSelectorFromString(@"setSafeAreaInsetsPortrait:");
+    if (settings && [settings respondsToSelector:s])
+        ((void(*)(id,SEL,UIEdgeInsets))objc_msgSend)(settings,s,insets);
 }
-static NSString *DDSnapshot(void){
-    UIWindow*bar=DDStatusBarWindow(); UIView*c=DDDashboardContentView(); UIWindow*h=c.window; UIView*r=h.rootViewController.view; UIButton*b=(UIButton*)[bar viewWithTag:DDFullButtonTag];
-    return [NSString stringWithFormat:@"fullscreen=%d bar=%@/%@ hidden=%d button=%@/%@ host=%@/%@ root=%@/%@ content=%@/%@ super=%@/%@",DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?NSStringFromCGRect(bar.bounds):@"nil",bar?bar.hidden:-1,b?@"YES":@"NO",b?NSStringFromCGRect(b.frame):@"nil",h?NSStringFromCGRect(h.frame):@"nil",h?NSStringFromCGRect(h.bounds):@"nil",r?NSStringFromCGRect(r.frame):@"nil",r?NSStringFromCGRect(r.bounds):@"nil",c?NSStringFromCGRect(c.frame):@"nil",c?NSStringFromCGRect(c.bounds):@"nil",c.superview?NSStringFromCGRect(c.superview.frame):@"nil",c.superview?NSStringFromCGRect(c.superview.bounds):@"nil"];
+
+static CGRect DDGetSettingsFrame(id settings) {
+    SEL s = NSSelectorFromString(@"frame");
+    if (!settings || ![settings respondsToSelector:s]) return CGRectZero;
+    return ((CGRect(*)(id,SEL))objc_msgSend)(settings,s);
 }
-static void DDTrace(NSString*event){
-    NSString*line=[NSString stringWithFormat:@"%@ | %@ | %@\\n",NSDate.date,event,DDSnapshot()];
-    CFPropertyListRef old=CFPreferencesCopyAppValue(CFSTR("payload.DDTRACE"),CFSTR("com.chuong.daudat.diagnostic"));
-    NSString*prev=(old&&CFGetTypeID(old)==CFStringGetTypeID())?[(__bridge NSString*)old copy]:@"";
-    if(old)CFRelease(old);
-    NSString*all=[prev stringByAppendingString:line];
-    if(all.length>60000)all=[all substringFromIndex:all.length-60000];
-    CFPreferencesSetAppValue(CFSTR("payload.DDTRACE"),(__bridge CFStringRef)all,CFSTR("com.chuong.daudat.diagnostic"));
-    CFPreferencesAppSynchronize(CFSTR("com.chuong.daudat.diagnostic"));
+
+static void DDPostChromeHidden(BOOL hidden) {
+    NSDictionary *info = @{@"nativeChromeHidden": @(hidden)};
+    Class c = NSClassFromString(@"NSDistributedNotificationCenter");
+    id center = c && [c respondsToSelector:@selector(defaultCenter)] ? [c defaultCenter] : nil;
+    SEL post = NSSelectorFromString(@"postNotificationName:object:userInfo:");
+    if (center && [center respondsToSelector:post])
+        ((void(*)(id,SEL,id,id,id))objc_msgSend)(center,post,DDChromeNotification,nil,info);
+}
+
+static void DDApplyChromeWindow(UIWindow *window, BOOL hidden) {
+    if (!window) return;
+    window.hidden = hidden;
+}
+
+static NSString *DDSnapshot(void) {
+    UIView *v = DDHost.view;
+    id scene = DDSceneForHost(DDHost);
+    return [NSString stringWithFormat:@"fullscreen=%d host=%@ viewFrame=%@ viewBounds=%@ scene=%@ saved=%d savedRect=%@ savedInsets=%@",
+            DDFullscreen,
+            DDHost ? NSStringFromClass(DDHost.class) : @"nil",
+            v ? NSStringFromCGRect(v.frame) : @"nil",
+            v ? NSStringFromCGRect(v.bounds) : @"nil",
+            scene ? NSStringFromClass([scene class]) : @"nil",
+            DDHaveSavedGeometry,
+            NSStringFromCGRect(DDSavedRect),
+            NSStringFromUIEdgeInsets(DDSavedInsets)];
+}
+
+static void DDTrace(NSString *event) {
     DDDoctorLogEvent(event,DDSnapshot());
-    NSLog(@"[DauDat] %@",line);
+    NSLog(@"[DauDat] %@ | %@",event,DDSnapshot());
 }
-static void DDForceDashboardGeometry(void){ UIView*c=DDDashboardContentView();if(!c||!c.superview)return;if(DDFullscreen){CGRect f=c.superview.bounds;if(!CGRectIsEmpty(f))c.frame=f;}else if(DDHaveDashboardFrame)c.frame=DDNormalDashboardFrame;[c setNeedsLayout]; }
-static void DDInstallButton(UIWindow*bar);
-static void DDSetFullscreen(BOOL e){
-    if(e==DDFullscreen)return;UIWindow*bar=DDStatusBarWindow();UIView*c=DDDashboardContentView();if(!bar||!c||!c.superview){DDTrace(@"FULLSCREEN_ABORT_MISSING_HOST");return;}
-    DDTrace(e?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
-    if(e){DDNormalDashboardFrame=c.frame;DDHaveDashboardFrame=YES;DDFullscreen=YES;DDSetNativeChromeHidden(YES);bar.hidden=YES;DDForceDashboardGeometry();}
-    else{DDFullscreen=NO;bar.hidden=NO;DDSetNativeChromeHidden(NO);DDForceDashboardGeometry();DDInstallButton(bar);}
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(120*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{DDForceDashboardGeometry();DDTrace(e?@"FULLSCREEN_ENTER_SETTLED":@"FULLSCREEN_EXIT_SETTLED");});
-    DDTrace(e?@"FULLSCREEN_ENTER_END":@"FULLSCREEN_EXIT_END");
-}
-static void DDInstallButton(UIWindow*bar){
-    if(!bar||![NSStringFromClass(bar.class) containsString:@"DBStatusBarWindow"])return;UIButton*b=(UIButton*)[bar viewWithTag:DDFullButtonTag];
-    if(!b){b=[UIButton buttonWithType:UIButtonTypeCustom];b.tag=DDFullButtonTag;CGFloat side=38.0,y=MAX(4.0,bar.bounds.size.height-side-8.0);b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);b.backgroundColor=UIColor.clearColor;b.opaque=NO;b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;UIImageSymbolConfiguration*cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];[b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];b.tintColor=UIColor.whiteColor;[b addAction:[UIAction actionWithHandler:^(__kindof UIAction*a){(void)a;DDSetFullscreen(YES);}] forControlEvents:UIControlEventTouchUpInside];[bar addSubview:b];DDTrace(@"FULLSCREEN_BUTTON_CREATED");}b.hidden=DDFullscreen;
-}
-%hook DBStatusBarWindow
--(void)didAddSubview:(UIView*)v {
-    %orig(v);
-    DDInstallButton((UIWindow*)self);
-}
--(void)didMoveToScreen:(UIScreen*)s {
-    %orig(s);
-    if(s) DDInstallButton((UIWindow*)self);
-}
--(void)layoutSubviews {
-    %orig;
-    if(!DDFullscreen) DDInstallButton((UIWindow*)self);
-}
-%end
-%hook DBAnimationView
--(void)layoutSubviews {
-    %orig;
-    if(DDFullscreen) DDForceDashboardGeometry();
-}
-%end
-%hook UIWindow
--(void)sendEvent:(UIEvent*)e {
-    if(DDFullscreen && DDIsCarPlayScreen(self.screen) && e.type==UIEventTypeTouches) {
-        for(UITouch*t in e.allTouches) {
-            if(t.phase!=UITouchPhaseEnded) continue;
-            CGPoint p=[t locationInView:self];
-            if(p.x<=44 && p.y<=44) {
-                DDTrace(@"FULLSCREEN_RESTORE_HITZONE");
-                DDSetFullscreen(NO);
-                return;
-            }
-        }
+
+static void DDInstallExitButton(void);
+
+static void DDSetFullscreen(BOOL enabled) {
+    DBApplicationViewController *host = DDHost;
+    id scene = DDSceneForHost(host);
+    if (!host || !scene) {
+        DDTrace(@"FULLSCREEN_ABORT_NO_DBAPPLICATION_HOST");
+        return;
     }
-    %orig(e);
+    if (enabled == DDFullscreen) return;
+
+    if (enabled) {
+        DDTrace(@"FULLSCREEN_ENTER_BEGIN");
+        DDUpdateScene(scene, ^(id settings) {
+            if (!DDHaveSavedGeometry) {
+                DDSavedInsets = DDGetInsets(settings);
+                DDSavedRect = DDGetSettingsFrame(settings);
+                if (CGRectIsEmpty(DDSavedRect)) DDSavedRect = host.view.frame;
+                DDHaveSavedGeometry = YES;
+            }
+            DDSetInsets(settings, UIEdgeInsetsZero);
+        });
+        DDFullscreen = YES;
+        DDPostChromeHidden(YES);
+        DDInstallExitButton();
+        DDTrace(@"FULLSCREEN_ENTER_END");
+    } else {
+        DDTrace(@"FULLSCREEN_EXIT_BEGIN");
+        DDFullscreen = NO;
+        DDUpdateScene(scene, ^(id settings) {
+            if (DDHaveSavedGeometry) DDSetInsets(settings,DDSavedInsets);
+            UIView *v = host.view;
+            v.hidden = NO;
+            v.alpha = 1.0;
+            v.transform = CGAffineTransformIdentity;
+            if (DDHaveSavedGeometry && !CGRectIsEmpty(DDSavedRect)) v.frame = DDSavedRect;
+            if (v.superview) [v.superview bringSubviewToFront:v];
+        });
+        DDPostChromeHidden(NO);
+        UIButton *exit = (UIButton *)[host.view viewWithTag:DDExitButtonTag];
+        [exit removeFromSuperview];
+        DDTrace(@"FULLSCREEN_EXIT_END");
+    }
+}
+
+static UIButton *DDMakeButton(NSInteger tag, NSString *symbol, void (^handler)(void)) {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeCustom];
+    b.tag = tag;
+    b.frame = CGRectMake(0,0,38,38);
+    b.backgroundColor = UIColor.clearColor;
+    b.opaque = NO;
+    UIImageSymbolConfiguration *cfg = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
+    [b setImage:[UIImage systemImageNamed:symbol withConfiguration:cfg] forState:UIControlStateNormal];
+    b.tintColor = UIColor.whiteColor;
+    [b addAction:[UIAction actionWithHandler:^(__kindof UIAction *a){ (void)a; if(handler) handler(); }]
+      forControlEvents:UIControlEventTouchUpInside];
+    return b;
+}
+
+static void DDInstallEnterButton(UIWindow *bar) {
+    if (!bar || DDFullscreen) return;
+    UIButton *b = (UIButton *)[bar viewWithTag:DDFullButtonTag];
+    if (!b) {
+        b = DDMakeButton(DDFullButtonTag,@"arrow.up.left.and.arrow.down.right",^{ DDSetFullscreen(YES); });
+        [bar addSubview:b];
+    }
+    CGFloat side=38.0;
+    b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),MAX(4.0,bar.bounds.size.height-side-8.0),side,side);
+    b.hidden=NO;
+}
+
+static void DDInstallExitButton(void) {
+    if (!DDFullscreen || !DDHost.view) return;
+    UIButton *b = (UIButton *)[DDHost.view viewWithTag:DDExitButtonTag];
+    if (!b) {
+        b = DDMakeButton(DDExitButtonTag,@"arrow.down.right.and.arrow.up.left",^{ DDSetFullscreen(NO); });
+        b.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
+        [DDHost.view addSubview:b];
+    }
+    b.frame = CGRectMake(MAX(4.0,DDHost.view.bounds.size.width-44.0),6.0,38.0,38.0);
+    [DDHost.view bringSubviewToFront:b];
+}
+
+static void DDRegisterChromeObserver(UIWindow *window) {
+    if (!window || objc_getAssociatedObject(window,@selector(DDRegisterChromeObserver))) return;
+    objc_setAssociatedObject(window,@selector(DDRegisterChromeObserver),@YES,OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    Class c=NSClassFromString(@"NSDistributedNotificationCenter");
+    id center=c && [c respondsToSelector:@selector(defaultCenter)] ? [c defaultCenter] : nil;
+    SEL add=NSSelectorFromString(@"addObserverForName:object:queue:usingBlock:");
+    if (center && [center respondsToSelector:add]) {
+        __weak UIWindow *weakWindow=window;
+        id block=^(NSNotification *n){
+            NSNumber *x=n.userInfo[@"nativeChromeHidden"];
+            if(x) DDApplyChromeWindow(weakWindow,x.boolValue);
+        };
+        ((id(*)(id,SEL,id,id,id,id))objc_msgSend)(center,add,DDChromeNotification,nil,[NSOperationQueue mainQueue],block);
+    }
+}
+
+%hook DBApplicationViewController
+- (void)viewDidLoad {
+    %orig;
+    DDHost=(DBApplicationViewController *)self;
+    DDTrace(@"DBAPPLICATION_HOST_CAPTURED");
+}
+- (void)viewDidAppear:(BOOL)animated {
+    %orig(animated);
+    DDHost=(DBApplicationViewController *)self;
+    if(DDFullscreen) DDInstallExitButton();
+}
+- (void)viewDidLayoutSubviews {
+    %orig;
+    DDHost=(DBApplicationViewController *)self;
+    if(DDFullscreen) DDInstallExitButton();
 }
 %end
-%ctor{ %init; NSString*p=NSProcessInfo.processInfo.processName?:@"";if([p isEqualToString:@"CarPlay"]||[p isEqualToString:@"CarPlayApp"])dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(1*NSEC_PER_SEC)),dispatch_get_main_queue(),^{UIWindow*b=DDStatusBarWindow();if(b)DDInstallButton(b);else DDTrace(@"FULLSCREEN_BUTTON_NO_STATUSBAR");}); }
+
+%hook DBStatusBarWindow
+- (void)layoutSubviews {
+    %orig;
+    DDRegisterChromeObserver((UIWindow *)self);
+    if(!DDFullscreen) DDInstallEnterButton((UIWindow *)self);
+}
+- (void)didMoveToScreen:(UIScreen *)screen {
+    %orig(screen);
+    DDRegisterChromeObserver((UIWindow *)self);
+    if(!DDFullscreen) DDInstallEnterButton((UIWindow *)self);
+}
+%end
+
+%hook DBDockWindow
+- (void)layoutSubviews {
+    %orig;
+    DDRegisterChromeObserver((UIWindow *)self);
+}
+%end
+
+%ctor {
+    %init;
+}
