@@ -58,19 +58,15 @@ static NSString *DDGeometrySnapshot(void) {
                     v.superview?NSStringFromClass(v.superview.class):@"nil"]];
             }
         });
-        [rows addObject:[NSString stringWithFormat:@"WIN[%ld] %@ f=%@ b=%@ hidden=%d
-%@",
+        [rows addObject:[NSString stringWithFormat:@"WIN[%ld] %@ f=%@ b=%@ hidden=%d\n%@",
             (long)wi++,NSStringFromClass(w.class),NSStringFromCGRect(w.frame),NSStringFromCGRect(w.bounds),
-            w.hidden,[interesting componentsJoinedByString:@"
-"]]];
+            w.hidden,[interesting componentsJoinedByString:@"\n"]]];
     }
-    return [rows componentsJoinedByString:@"
-"];
+    return [rows componentsJoinedByString:@"\n"];
 }
 static void DDTrace(NSString *event) {
     UIWindow *bar=DDStatusWindow();
-    NSString *detail=[NSString stringWithFormat:@"fullscreen=%d barFrame=%@ barHidden=%d
-%@",
+    NSString *detail=[NSString stringWithFormat:@"fullscreen=%d barFrame=%@ barHidden=%d\n%@",
                       DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?bar.hidden:-1,
                       DDGeometrySnapshot()];
     DDDoctorLogEvent(event,detail);
