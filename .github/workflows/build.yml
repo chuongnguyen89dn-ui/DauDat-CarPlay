@@ -1,4 +1,5 @@
 name: Build DuoDash 1.1.3 Fullscreen427 + AiraW 1.6.7
+# trigger: full-payload-test2
 
 on:
   push:
