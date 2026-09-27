@@ -64,7 +64,11 @@ static void DDSetFullscreen(BOOL e){
 }
 static void DDInstallButton(UIWindow*bar){
     if(!bar||![NSStringFromClass(bar.class) containsString:@"DBStatusBarWindow"])return;UIButton*b=(UIButton*)[bar viewWithTag:DDFullButtonTag];
-    if(!b){b=[UIButton buttonWithType:UIButtonTypeCustom];b.tag=DDFullButtonTag;CGFloat side=38.0,y=MAX(4.0,bar.bounds.size.height-side-8.0);b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);b.backgroundColor=UIColor.clearColor;b.opaque=NO;b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;UIImageSymbolConfiguration*cfg=[UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];[b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];b.tintColor=UIColor.whiteColor;[b addAction:[UIAction actionWithHandler:^(__kindof UIAction*a){(void)a;DDSetFullscreen(YES);}] forControlEvents:UIControlEventTouchUpInside];[bar addSubview:b];DDTrace(@"FULLSCREEN_BUTTON_CREATED");}b.hidden=DDFullscreen;
+    if(!b){b=[UIButton buttonWithType:UIButtonTypeCustom];b.tag=DDFullButtonTag;CGFloat side=30.0;
+        // 427x240 CarPlay sidebar: keep this as the next app-like item below DuoDash,
+        // leaving the native bottom Menu/Home control unobstructed.
+        CGFloat y=MAX(4.0,bar.bounds.size.height-64.0);
+        b.frame=CGRectMake(MAX(3.0,(bar.bounds.size.width-side)/2.0),y,side,side);b.backgroundColor=UIColor.clearColor;b.opaque=NO;b.autoresizingMask=UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin;UIImageSymbolConfiguration*cfg=[UIImageSymbolConfiguration configurationWithPointSize:14 weight:UIImageSymbolWeightSemibold];[b setImage:[UIImage systemImageNamed:@"arrow.up.left.and.arrow.down.right" withConfiguration:cfg] forState:UIControlStateNormal];b.tintColor=UIColor.whiteColor;[b addAction:[UIAction actionWithHandler:^(__kindof UIAction*a){(void)a;DDSetFullscreen(YES);}] forControlEvents:UIControlEventTouchUpInside];[bar addSubview:b];DDTrace(@"FULLSCREEN_BUTTON_CREATED");}b.hidden=DDFullscreen;
 }
 %hook DBStatusBarWindow
 -(void)didAddSubview:(UIView*)v {
