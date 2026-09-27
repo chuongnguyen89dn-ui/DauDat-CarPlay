@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
+#import "DauDatConfig.h"
 #import "DauDatDoctor.h"
 
 @interface DBStatusBarWindow : UIWindow @end
