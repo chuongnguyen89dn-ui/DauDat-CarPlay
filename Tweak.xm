@@ -78,10 +78,33 @@ static UIWindow *DDStatusWindow(void) {
     return nil;
 }
 
+static NSString *DDGeometrySnapshot(void) {
+    NSMutableArray *rows=[NSMutableArray array];
+    NSInteger wi=0;
+    for(UIWindow *w in DDCarPlayWindows()) {
+        NSMutableArray *interesting=[NSMutableArray array];
+        DDWalk(w,^(UIView *v){
+            CGRect f=v.frame, b=v.bounds;
+            NSString *cn=NSStringFromClass(v.class);
+            BOOL divider=[cn containsString:@"Divider"]||[cn containsString:@"Handle"];
+            BOOL hostLike=(f.size.width>100.0 || b.size.width>100.0);
+            if(divider || hostLike) {
+                [interesting addObject:[NSString stringWithFormat:@"%@ f=%@ b=%@ super=%@",
+                    cn,NSStringFromCGRect(f),NSStringFromCGRect(b),
+                    v.superview?NSStringFromClass(v.superview.class):@"nil"]];
+            }
+        });
+        [rows addObject:[NSString stringWithFormat:@"WIN[%ld] %@ f=%@ b=%@ hidden=%d\n%@",
+            (long)wi++,NSStringFromClass(w.class),NSStringFromCGRect(w.frame),NSStringFromCGRect(w.bounds),
+            w.hidden,[interesting componentsJoinedByString:@"\n"]]];
+    }
+    return [rows componentsJoinedByString:@"\n"];
+}
 static void DDTrace(NSString *event) {
     UIWindow *bar=DDStatusWindow();
-    NSString *detail=[NSString stringWithFormat:@"fullscreen=%d barFrame=%@ barHidden=%d",
-                      DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?bar.hidden:-1];
+    NSString *detail=[NSString stringWithFormat:@"fullscreen=%d barFrame=%@ barHidden=%d\n%@",
+                      DDFullscreen,bar?NSStringFromCGRect(bar.frame):@"nil",bar?bar.hidden:-1,
+                      DDGeometrySnapshot()];
     DDDoctorLogEvent(event,detail);
     NSLog(@"[DauDat] %@ | %@",event,detail);
 }
@@ -161,6 +184,10 @@ static void DDRestoreAll(void) {
     if(bar) DDInstallEnterButton(bar);
 }
 
+static void DDScheduleDividerDiagnostics(void) {
+    DDTrace(@"DIVIDER_STATE");
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(300*NSEC_PER_MSEC)),dispatch_get_main_queue(),^{ DDTrace(@"DIVIDER_STATE_300MS"); });
+}
 static void DDSetFullscreen(BOOL enabled) {
     if(enabled==DDFullscreen) return;
     DDTrace(enabled?@"FULLSCREEN_ENTER_BEGIN":@"FULLSCREEN_EXIT_BEGIN");
@@ -191,6 +218,15 @@ static void DDSetFullscreen(BOOL enabled) {
 - (void)didMoveToWindow {
     %orig;
     if(DDFullscreen) DDExpandHostView(self);
+}
+- (void)layoutSubviews {
+    %orig;
+    NSString *cn=NSStringFromClass(self.class);
+    if(([cn containsString:@"Divider"]||[cn containsString:@"Handle"]) && DDViewIsCarPlay(self)) {
+        static CFTimeInterval last=0;
+        CFTimeInterval now=CACurrentMediaTime();
+        if(now-last>0.20){ last=now; DDScheduleDividerDiagnostics(); }
+    }
 }
 %end
 
