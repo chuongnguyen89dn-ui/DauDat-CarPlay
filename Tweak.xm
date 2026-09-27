@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import <objc/runtime.h>
+#import <objc/runtime.h>\n\n@interface NSDistributedNotificationCenter : NSNotificationCenter\n+ (instancetype)defaultCenter;\n@end
 
 static BOOL DDGeometryFullscreen = NO;
 static const void *DDSavedFrameKey = &DDSavedFrameKey;
