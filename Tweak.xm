@@ -120,7 +120,8 @@ static void DDInstallExitButton(void) {
 
 static void DDPostChromeHidden(BOOL hidden) {
     NSDictionary *info=@{ @"nativeChromeHidden":@(hidden), @"fullscreenButtonHidden":@(hidden) };
-    [[NSDistributedNotificationCenter defaultCenter] postNotificationName:DDAirawChromeNotification object:nil userInfo:info deliverImmediately:YES];
+    CFNotificationCenterRef center=CFNotificationCenterGetDarwinNotifyCenter();
+    CFNotificationCenterPostNotification(center,(__bridge CFStringRef)DDAirawChromeNotification,NULL,(__bridge CFDictionaryRef)info,true);
 }
 
 static void DDApplySceneFullscreen(BOOL enabled) {
