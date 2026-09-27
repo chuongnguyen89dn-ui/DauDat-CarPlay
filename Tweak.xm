@@ -96,7 +96,10 @@ static void DDInstallHostMenuSuppressor(void) {
     if(DDGeometryFullscreen && DDViewIsCarPlay(self)) return UIEdgeInsetsZero;
     return x;
 }
-- (void)didMoveToWindow {\n    %orig;\n    if (DDGeometryFullscreen) DDExpandHostView(self);\n}
+- (void)didMoveToWindow {
+    %orig;
+    if (DDGeometryFullscreen) DDExpandHostView(self);
+}
 %end
 
 %ctor {
