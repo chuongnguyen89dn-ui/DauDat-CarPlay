@@ -12,19 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install tools
-        run: |
-          brew install ldid dpkg
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
-          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
-
-      - name: Build Fullscreen427 layer
-        run: |
-          export THEOS="$HOME/theos"
-          make clean package FINALPACKAGE=1
-          LAYER_DEB=$(ls packages/*.deb | head -1)
-          mkdir -p "$RUNNER_TEMP/layer"
-          dpkg-deb -x "$LAYER_DEB" "$RUNNER_TEMP/layer"
+      - name: Install packaging tools
+        run: brew install dpkg
 
       - name: Use uploaded DuoDash 1.1.3 and AiraW 1.6.7
         shell: bash
@@ -56,17 +45,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/airaw-root"
           dpkg-deb -x "$RUNNER_TEMP/airaw.deb" "$RUNNER_TEMP/airaw-root"
           cp -a "$RUNNER_TEMP/airaw-root/." "$ROOT/"
-
-          # Keep the 427x240 correction layer built from this repository.
-          LAYER=$(find "$RUNNER_TEMP/layer" -type f -name 'DuoDashAirawOneUI.dylib' | head -1)
-          test -n "$LAYER"
-          mkdir -p "$ROOT/var/jb/usr/lib/TweakInject"
-          cp "$LAYER" "$ROOT/var/jb/usr/lib/TweakInject/DuoDashFullscreen427.dylib"
-          cat > "$ROOT/var/jb/usr/lib/TweakInject/DuoDashFullscreen427.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict><key>Filter</key><dict><key>Bundles</key><array><string>com.apple.CarPlay</string></array></dict></dict></plist>
-          PLIST
 
           # dpkg control metadata is not part of dpkg-deb -x; output gets one DuoDash control.
           # Audit the complete overlaid payload before packaging.
