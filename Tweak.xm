@@ -9,6 +9,13 @@
 static BOOL DDFullscreen = NO;
 static const NSInteger DDEnterTag = 771133;
 static const NSInteger DDExitTag  = 771134;
+static BOOL DDNear(CGFloat a, CGFloat b) { return fabs(a-b) < 3.0; }
+static BOOL DDIs427CarPlayScreen(UIScreen *screen) {
+    if (!screen || screen == UIScreen.mainScreen) return NO;
+    CGRect b=screen.bounds;
+    return (DDNear(b.size.width,427.0)&&DDNear(b.size.height,240.0)) || (DDNear(b.size.width,240.0)&&DDNear(b.size.height,427.0));
+}
+
 static void DDWalk(UIView *v, void (^block)(UIView *)) {
     if(!v)return;
     block(v);
@@ -113,7 +120,6 @@ static void DDApplyFullscreenNow(void) {
         if([NSStringFromClass(w.class) containsString:@"DBStatusBarWindow"]) {
             CGRect f=w.frame;
             if(DDFullscreen) {
-                DDSaveFrameIfNeeded(w);
                 f.origin.x=(f.size.width>1.0)?-f.size.width:-45.0;
                 w.frame=f;
             }
