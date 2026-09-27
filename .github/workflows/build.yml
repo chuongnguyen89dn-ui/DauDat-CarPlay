@@ -57,9 +57,11 @@ jobs:
           # DuoDash is the base runtime.
           dpkg-deb -x "$RUNNER_TEMP/duodash.deb" "$ROOT"
 
-          # Bring AiraW 1.6.7 runtime into the same root for the first mechanism test.
-          # Package metadata remains DuoDash only.
-          dpkg-deb -x "$RUNNER_TEMP/airaw.deb" "$ROOT"
+          # Overlay the COMPLETE AiraW 1.6.7 payload into DuoDash.
+          # Nothing from the AiraW data archive is selectively removed at this stage.
+          mkdir -p "$RUNNER_TEMP/airaw-root"
+          dpkg-deb -x "$RUNNER_TEMP/airaw.deb" "$RUNNER_TEMP/airaw-root"
+          cp -a "$RUNNER_TEMP/airaw-root/." "$ROOT/"
 
           # Keep the 427x240 correction layer built from this repository.
           LAYER=$(find "$RUNNER_TEMP/layer" -type f -name 'DuoDashAirawOneUI.dylib' | head -1)
@@ -72,13 +74,23 @@ jobs:
           <plist version="1.0"><dict><key>Filter</key><dict><key>Bundles</key><array><string>com.apple.CarPlay</string></array></dict></dict></plist>
           PLIST
 
-          # Do not carry package-manager metadata from either input package.
-          rm -rf "$ROOT/var/jb/Library/dpkg/info" "$ROOT/Library/dpkg/info" || true
+          # dpkg control metadata is not part of dpkg-deb -x; output gets one DuoDash control.
+          # Audit the complete overlaid payload before packaging.
+          echo "=== POSSIBLE FILE COLLISIONS ==="
+          comm -12 \
+            <(cd "$RUNNER_TEMP/airaw-root" && find . -type f | sort) \
+            <(dpkg-deb -c "$RUNNER_TEMP/duodash.deb" | awk '{print $NF}' | sed 's#^\./##;s#^#./#' | sort) || true
+
+          echo "=== EMBEDDED AIRAW PAYLOAD ==="
+          find "$RUNNER_TEMP/airaw-root" -type f | sort
+
+          echo "=== DUPLICATE DYLIB / PLIST BASENAMES ==="
+          find "$ROOT" -type f \( -name '*.dylib' -o -name '*.plist' \) -print | sed 's#.*/##' | sort | uniq -d || true
 
           cat > "$ROOT/DEBIAN/control" <<'EOF'
           Package: com.chuong.duodash.fullscreen427
           Name: DuoDash Fullscreen427
-          Version: 1.1.3-427.167test1
+          Version: 1.1.3-427.167test2
           Architecture: iphoneos-arm64
           Description: Single DuoDash test package with 427x240 correction and embedded AiraW 1.6.7 CarPlay runtime.
           Maintainer: chuongnguyen89dn-ui
@@ -98,7 +110,7 @@ jobs:
           chmod 755 "$ROOT/DEBIAN/postinst"
 
           mkdir -p out
-          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test1_iphoneos-arm64.deb"
+          OUT="out/DuoDash_1.1.3_Fullscreen427_AiraW167_test2_iphoneos-arm64.deb"
           dpkg-deb --root-owner-group -Zxz -b "$ROOT" "$OUT"
           echo "=== OUTPUT ==="
           dpkg-deb -I "$OUT"
@@ -107,5 +119,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DuoDash-Fullscreen427-AiraW167-test1
+          name: DuoDash-Fullscreen427-AiraW167-test2
           path: out/*.deb
