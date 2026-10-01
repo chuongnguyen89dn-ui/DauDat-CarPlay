@@ -1,0 +1,10 @@
+TIEP TUC DU AN — DAUDAT CARPLAY
+
+CAP NHAT 2026-10-02
+- Repo: chuongnguyen89dn-ui/DauDat-CarPlay.
+- Muc tieu: tweak/carplay standalone cho jailbreak, huong toi UI split/fullscreen va hanh vi tuong tu nhom DuoDash/Airaw nhung khong phu thuoc viec mo app iPhone truoc.
+- Yeu cau UI da chot: split co divider keo duoc, co the mo rong mot ben toi 100%; menu trong/sang trong; an thanh bar bang swipe/drag thay vi icon Airaw co dinh.
+- Log xung dot/runtime tung duoc yeu cau tai /var/mobile/Documents/DuoDash-Airaw-Logs/Conflict.log.
+- Huong ve sau da chuyen sang thiet ke standalone dua tren hanh vi quan sat, thay vi tiep tuc ghep nguyen Airaw/DuoDash.
+- Muc tieu phat hanh: deb cho Sileo. Moi deb phai duoc build va kiem tra runtime tren thiet bi truoc khi coi hoan thanh.
+- Day la handoff dau tien; khong lap noi dung tu carplaydsp/DuoDash-Diagnostic.
